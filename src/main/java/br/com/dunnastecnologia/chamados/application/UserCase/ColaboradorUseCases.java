@@ -1,0 +1,60 @@
+package br.com.dunnastecnologia.chamados.application.UserCase;
+
+import br.com.dunnastecnologia.chamados.application.Security.AuthenticatedUser;
+import br.com.dunnastecnologia.chamados.application.pagination.PageResult;
+import br.com.dunnastecnologia.chamados.domain.Model.Chamado;
+import br.com.dunnastecnologia.chamados.domain.Model.Comentario;
+import org.springframework.data.domain.PageRequest;
+
+import java.util.UUID;
+
+public interface ColaboradorUseCases {
+    /**
+     *  para permitir que o colaborador visualize os chamados dentro do seu escopo,
+     * aplicando filtros operacionais para atender e acompanhar a fila de trabalho.
+     */
+    PageResult<Chamado> buscarChamados(
+            AuthenticatedUser colaborador,
+            UUID statusId,
+            UUID unidadeId,
+            PageRequest pageRequest
+    );
+
+    /**
+     *  para detalhar um chamado especifico que esteja dentro do escopo do colaborador,
+     * evitando acesso indiscriminado a registros fora da area atendida por ele.
+     */
+    Chamado buscarChamadoPorId(
+            AuthenticatedUser colaborador,
+            UUID chamadoId
+    );
+
+    /**
+     *  porque colaboradores podem evoluir o atendimento alterando o status do chamado
+     * ate sua conclusao, conforme a regra de negocio do sistema.
+     */
+    Chamado atualizarStatusChamado(
+            AuthenticatedUser colaborador,
+            UUID chamadoId,
+            UUID statusId
+    );
+
+    /**
+     *  para encerrar formalmente o chamado, registrando o momento de finalizacao
+     * quando o atendimento for concluido.
+     */
+    Chamado finalizarChamado(
+            AuthenticatedUser colaborador,
+            UUID chamadoId
+    );
+
+    /**
+     *  para que o colaborador registre interacoes no historico do chamado
+     * sempre respeitando o proprio escopo de acesso.
+     */
+    Comentario comentarChamado(
+            AuthenticatedUser colaborador,
+            UUID chamadoId,
+            String mensagem
+    );
+}
