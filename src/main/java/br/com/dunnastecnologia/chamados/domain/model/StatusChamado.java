@@ -5,12 +5,14 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Getter;
+import lombok.Setter;
 
 import java.util.UUID;
 
 @Entity
 @Table(name = "status_chamado")
 @Getter
+@Setter
 public class StatusChamado {
 
     @Id
@@ -18,5 +20,7 @@ public class StatusChamado {
     private UUID id;
 
     private String nome;
+
+    private Boolean inicialPadrao;
 
 }
