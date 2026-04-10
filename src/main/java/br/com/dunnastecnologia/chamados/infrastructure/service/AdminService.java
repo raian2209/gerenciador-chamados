@@ -1,0 +1,224 @@
+package br.com.dunnastecnologia.chamados.infrastructure.service;
+
+import br.com.dunnastecnologia.chamados.application.Security.AuthenticatedUser;
+import br.com.dunnastecnologia.chamados.application.UserCase.AdminUseCases;
+import br.com.dunnastecnologia.chamados.application.pagination.PageResult;
+import br.com.dunnastecnologia.chamados.domain.model.Bloco;
+import br.com.dunnastecnologia.chamados.domain.model.Chamado;
+import br.com.dunnastecnologia.chamados.domain.model.Comentario;
+import br.com.dunnastecnologia.chamados.domain.model.StatusChamado;
+import br.com.dunnastecnologia.chamados.domain.model.TipoChamado;
+import br.com.dunnastecnologia.chamados.domain.model.Unidade;
+import br.com.dunnastecnologia.chamados.domain.model.Usuario;
+import br.com.dunnastecnologia.chamados.infrastructure.exception.BusinessRuleException;
+import br.com.dunnastecnologia.chamados.infrastructure.exception.ResourceNotFoundException;
+import br.com.dunnastecnologia.chamados.infrastructure.repository.BlocoRepository;
+import br.com.dunnastecnologia.chamados.infrastructure.repository.UnidadeRepository;
+import br.com.dunnastecnologia.chamados.infrastructure.service.support.AuthenticatedUserValidator;
+import br.com.dunnastecnologia.chamados.infrastructure.service.support.PageResultMapper;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.UUID;
+
+@Service
+@Transactional(readOnly = true)
+public class AdminService implements AdminUseCases {
+
+    private final BlocoRepository blocoRepository;
+    private final UnidadeRepository unidadeRepository;
+    private final UsuarioService usuarioService;
+    private final TipoChamadoService tipoChamadoService;
+    private final StatusChamadoService statusChamadoService;
+    private final ChamadoService chamadoService;
+    private final ComentarioService comentarioService;
+    private final AuthenticatedUserValidator authenticatedUserValidator;
+
+    public AdminService(
+            BlocoRepository blocoRepository,
+            UnidadeRepository unidadeRepository,
+            UsuarioService usuarioService,
+            TipoChamadoService tipoChamadoService,
+            StatusChamadoService statusChamadoService,
+            ChamadoService chamadoService,
+            ComentarioService comentarioService,
+            AuthenticatedUserValidator authenticatedUserValidator
+    ) {
+        this.blocoRepository = blocoRepository;
+        this.unidadeRepository = unidadeRepository;
+        this.usuarioService = usuarioService;
+        this.tipoChamadoService = tipoChamadoService;
+        this.statusChamadoService = statusChamadoService;
+        this.chamadoService = chamadoService;
+        this.comentarioService = comentarioService;
+        this.authenticatedUserValidator = authenticatedUserValidator;
+    }
+
+    @Override
+    @Transactional
+    public Bloco cadastrarBloco(AuthenticatedUser admin, String identificacao, int quantidadeAndares, int apartamentosPorAndar) {
+        authenticatedUserValidator.assertAdministrador(admin);
+        if (identificacao == null || identificacao.isBlank()) {
+            throw new BusinessRuleException("Identificacao do bloco e obrigatoria");
+        }
+        if (quantidadeAndares <= 0 || apartamentosPorAndar <= 0) {
+            throw new BusinessRuleException("Quantidade de andares e apartamentos por andar deve ser maior que zero");
+        }
+
+        Bloco bloco = new Bloco();
+        bloco.setIdentificacao(identificacao);
+        bloco.setQuantidadeAndares(quantidadeAndares);
+        bloco.setApartamentosPorAndar(apartamentosPorAndar);
+
+        Bloco savedBloco = blocoRepository.save(bloco);
+        blocoRepository.gerarUnidadesDoBloco(admin.id(), savedBloco.getId());
+        return blocoRepository.findById(savedBloco.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Bloco nao encontrado apos cadastro"));
+    }
+
+    @Override
+    public Bloco buscarBlocoPorId(UUID blocoId) {
+        return blocoRepository.findById(blocoId)
+                .orElseThrow(() -> new ResourceNotFoundException("Bloco nao encontrado"));
+    }
+
+    @Override
+    public PageResult<Bloco> listarBlocos(PageRequest pageRequest) {
+        return PageResultMapper.fromPage(blocoRepository.findAll(pageRequest));
+    }
+
+    @Override
+    public PageResult<Unidade> listarUnidadesDoBloco(UUID blocoId, PageRequest pageRequest) {
+        return PageResultMapper.fromPage(unidadeRepository.findByBlocoId(blocoId, pageRequest));
+    }
+
+    @Override
+    public Unidade buscarUnidadePorId(UUID unidadeId) {
+        return unidadeRepository.findById(unidadeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Unidade nao encontrada"));
+    }
+
+    @Override
+    @Transactional
+    public Usuario cadastrarUsuario(AuthenticatedUser admin, Usuario usuario) {
+        return usuarioService.cadastrarUsuario(admin, usuario);
+    }
+
+    @Override
+    @Transactional
+    public Usuario atualizarUsuario(AuthenticatedUser admin, UUID usuarioId, Usuario usuario) {
+        return usuarioService.atualizarUsuario(admin, usuarioId, usuario);
+    }
+
+    @Override
+    public PageResult<Usuario> listarUsuarios(PageRequest pageRequest) {
+        return usuarioService.listarUsuarios(pageRequest);
+    }
+
+    @Override
+    public Usuario buscarUsuarioPorId(UUID usuarioId) {
+        return usuarioService.buscarUsuarioPorId(usuarioId);
+    }
+
+    @Override
+    @Transactional
+    public void removerUsuario(AuthenticatedUser admin, UUID usuarioId) {
+        usuarioService.removerUsuario(admin, usuarioId);
+    }
+
+    @Override
+    @Transactional
+    public void vincularMoradorUnidade(AuthenticatedUser admin, UUID moradorId, UUID unidadeId) {
+        usuarioService.vincularMoradorUnidade(admin, moradorId, unidadeId);
+    }
+
+    @Override
+    @Transactional
+    public void desvincularMoradorUnidade(AuthenticatedUser admin, UUID moradorId, UUID unidadeId) {
+        usuarioService.desvincularMoradorUnidade(admin, moradorId, unidadeId);
+    }
+
+    @Override
+    public PageResult<Unidade> listarUnidadesDoMorador(UUID moradorId, PageRequest pageRequest) {
+        return PageResultMapper.fromPage(unidadeRepository.findByMoradorId(moradorId, pageRequest));
+    }
+
+    @Override
+    @Transactional
+    public TipoChamado cadastrarTipoChamado(AuthenticatedUser admin, String titulo, int prazoHoras) {
+        return tipoChamadoService.cadastrarTipoChamado(admin, titulo, prazoHoras);
+    }
+
+    @Override
+    public PageResult<TipoChamado> listarTiposChamado(PageRequest pageRequest) {
+        return tipoChamadoService.listarTiposChamado(pageRequest);
+    }
+
+    @Override
+    public TipoChamado buscarPorId(UUID tipoId) {
+        return tipoChamadoService.buscarTipoChamadoPorId(tipoId);
+    }
+
+    @Override
+    @Transactional
+    public TipoChamado atualizarTipoChamado(AuthenticatedUser admin, UUID tipoId, String titulo, int prazoHoras) {
+        return tipoChamadoService.atualizarTipoChamado(admin, tipoId, titulo, prazoHoras);
+    }
+
+    @Override
+    @Transactional
+    public StatusChamado cadastrarStatus(AuthenticatedUser admin, String nome) {
+        return statusChamadoService.cadastrarStatus(admin, nome);
+    }
+
+    @Override
+    public PageResult<StatusChamado> listarStatus(PageRequest pageRequest) {
+        return statusChamadoService.listarStatus(pageRequest);
+    }
+
+    @Override
+    public StatusChamado buscarStatusPorId(UUID statusId) {
+        return statusChamadoService.buscarStatusPorId(statusId);
+    }
+
+    @Override
+    @Transactional
+    public StatusChamado atualizarStatus(AuthenticatedUser admin, UUID statusId, String nome) {
+        return statusChamadoService.atualizarStatus(admin, statusId, nome);
+    }
+
+    @Override
+    @Transactional
+    public void definirStatusInicialPadrao(AuthenticatedUser admin, UUID statusId) {
+        statusChamadoService.definirStatusInicialPadrao(admin, statusId);
+    }
+
+    @Override
+    public PageResult<Chamado> buscarChamados(AuthenticatedUser admin, UUID statusId, UUID unidadeId, PageRequest pageRequest) {
+        return chamadoService.listarChamadosParaAdmin(admin, statusId, unidadeId, pageRequest);
+    }
+
+    @Override
+    public Chamado buscarChamadoPorId(AuthenticatedUser admin, UUID chamadoId) {
+        return chamadoService.buscarChamadoParaAdmin(admin, chamadoId);
+    }
+
+    @Override
+    @Transactional
+    public Chamado atualizarStatusChamado(AuthenticatedUser admin, UUID chamadoId, UUID statusId) {
+        return chamadoService.atualizarStatusComoAdmin(admin, chamadoId, statusId);
+    }
+
+    @Override
+    @Transactional
+    public Chamado finalizarChamado(AuthenticatedUser admin, UUID chamadoId) {
+        return chamadoService.finalizarComoAdmin(admin, chamadoId);
+    }
+
+    @Override
+    @Transactional
+    public Comentario comentarChamado(AuthenticatedUser admin, UUID chamadoId, String mensagem) {
+        return comentarioService.comentar(admin, chamadoId, mensagem);
+    }
+}
