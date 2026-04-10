@@ -2,13 +2,23 @@ package br.com.dunnastecnologia.chamados.application.UserCase;
 
 import br.com.dunnastecnologia.chamados.application.Security.AuthenticatedUser;
 import br.com.dunnastecnologia.chamados.application.pagination.PageResult;
-import br.com.dunnastecnologia.chamados.domain.Model.Chamado;
-import br.com.dunnastecnologia.chamados.domain.Model.Comentario;
+import br.com.dunnastecnologia.chamados.domain.model.Chamado;
+import br.com.dunnastecnologia.chamados.domain.model.Comentario;
+import br.com.dunnastecnologia.chamados.domain.model.Unidade;
 import org.springframework.data.domain.PageRequest;
 
 import java.util.UUID;
 
 public interface MoradorUseCases {
+    /**
+     * Existe para retornar apenas as unidades vinculadas ao morador autenticado,
+     * permitindo que ele selecione corretamente onde o problema ocorreu ao abrir um chamado.
+     */
+    PageResult<Unidade> listarMinhasUnidades(
+            AuthenticatedUser morador,
+            PageRequest pageRequest
+    );
+
     /**
      *  para permitir que o morador abra um chamado somente para uma unidade
      * que esteja vinculada a ele, registrando o tipo e a descricao inicial do problema.

@@ -2,13 +2,23 @@ package br.com.dunnastecnologia.chamados.application.UserCase;
 
 import br.com.dunnastecnologia.chamados.application.Security.AuthenticatedUser;
 import br.com.dunnastecnologia.chamados.application.pagination.PageResult;
-import br.com.dunnastecnologia.chamados.domain.Model.Chamado;
-import br.com.dunnastecnologia.chamados.domain.Model.Comentario;
+import br.com.dunnastecnologia.chamados.domain.model.Chamado;
+import br.com.dunnastecnologia.chamados.domain.model.Comentario;
+import br.com.dunnastecnologia.chamados.domain.model.StatusChamado;
 import org.springframework.data.domain.PageRequest;
 
 import java.util.UUID;
 
 public interface ColaboradorUseCases {
+    /**
+     * Existe para disponibilizar ao colaborador os status validos do fluxo,
+     * permitindo atualizacao consistente dos chamados sob atendimento.
+     */
+    PageResult<StatusChamado> listarStatusDisponiveis(
+            AuthenticatedUser colaborador,
+            PageRequest pageRequest
+    );
+
     /**
      *  para permitir que o colaborador visualize os chamados dentro do seu escopo,
      * aplicando filtros operacionais para atender e acompanhar a fila de trabalho.

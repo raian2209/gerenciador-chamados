@@ -2,12 +2,13 @@ package br.com.dunnastecnologia.chamados.application.UserCase;
 
 import br.com.dunnastecnologia.chamados.application.Security.AuthenticatedUser;
 import br.com.dunnastecnologia.chamados.application.pagination.PageResult;
-import br.com.dunnastecnologia.chamados.domain.Model.Bloco;
-import br.com.dunnastecnologia.chamados.domain.Model.Chamado;
-import br.com.dunnastecnologia.chamados.domain.Model.Comentario;
-import br.com.dunnastecnologia.chamados.domain.Model.StatusChamado;
-import br.com.dunnastecnologia.chamados.domain.Model.TipoChamado;
-import br.com.dunnastecnologia.chamados.domain.Model.Usuario;
+import br.com.dunnastecnologia.chamados.domain.model.Bloco;
+import br.com.dunnastecnologia.chamados.domain.model.Chamado;
+import br.com.dunnastecnologia.chamados.domain.model.Comentario;
+import br.com.dunnastecnologia.chamados.domain.model.StatusChamado;
+import br.com.dunnastecnologia.chamados.domain.model.TipoChamado;
+import br.com.dunnastecnologia.chamados.domain.model.Unidade;
+import br.com.dunnastecnologia.chamados.domain.model.Usuario;
 import org.springframework.data.domain.PageRequest;
 
 import java.util.UUID;
@@ -34,6 +35,21 @@ public interface AdminUseCases {
      *  para listar os blocos do condominio com paginacao durante a administracao da estrutura.
      */
     PageResult<Bloco> listarBlocos(PageRequest pageRequest);
+
+    /**
+     * Existe para consultar as unidades geradas automaticamente para um bloco,
+     * validando a estrutura criada a partir de andares e apartamentos por andar.
+     */
+    PageResult<Unidade> listarUnidadesDoBloco(
+            UUID blocoId,
+            PageRequest pageRequest
+    );
+
+    /**
+     * Existe para detalhar uma unidade especifica antes de vincular moradores
+     * ou auditar a estrutura fisica cadastrada no condominio.
+     */
+    Unidade buscarUnidadePorId(UUID unidadeId);
 
     /**
      *  para o administrador criar moradores, colaboradores e outros administradores,
@@ -91,6 +107,15 @@ public interface AdminUseCases {
     );
 
     /**
+     * Existe para consultar todas as unidades vinculadas a um morador,
+     * apoiando manutencao cadastral e auditoria dos vinculos de acesso.
+     */
+    PageResult<Unidade> listarUnidadesDoMorador(
+            UUID moradorId,
+            PageRequest pageRequest
+    );
+
+    /**
      *  para cadastrar os tipos de chamado disponiveis e seu prazo maximo de atendimento.
      */
     TipoChamado cadastrarTipoChamado(
@@ -108,6 +133,17 @@ public interface AdminUseCases {
      *  para consultar um tipo de chamado especifico durante manutencao administrativa.
      */
     TipoChamado buscarPorId(UUID tipoId);
+
+    /**
+     * Existe para permitir manutencao do catalogo de tipos de chamado
+     * sem precisar recriar registros ja existentes.
+     */
+    TipoChamado atualizarTipoChamado(
+            AuthenticatedUser admin,
+            UUID tipoId,
+            String titulo,
+            int prazoHoras
+    );
 
 
     /**
@@ -127,6 +163,25 @@ public interface AdminUseCases {
      *  para consultar um status especifico antes de uso ou manutencao.
      */
     StatusChamado buscarStatusPorId(UUID statusId);
+
+    /**
+     * Existe para permitir manutencao dos status do fluxo de atendimento
+     * ao longo da evolucao operacional do sistema.
+     */
+    StatusChamado atualizarStatus(
+            AuthenticatedUser admin,
+            UUID statusId,
+            String nome
+    );
+
+    /**
+     * Existe para definir qual status deve ser atribuido automaticamente
+     * a todo novo chamado no momento da abertura.
+     */
+    void definirStatusInicialPadrao(
+            AuthenticatedUser admin,
+            UUID statusId
+    );
 
     /**
      *  porque o administrador tambem pode acompanhar os chamados do condominio

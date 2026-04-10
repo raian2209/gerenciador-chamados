@@ -1,4 +1,4 @@
-package br.com.dunnastecnologia.chamados.domain.Model;
+package br.com.dunnastecnologia.chamados.domain.model;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;

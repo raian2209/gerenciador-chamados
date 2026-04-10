@@ -1,4 +1,4 @@
-package br.com.dunnastecnologia.chamados.domain.Model;
+package br.com.dunnastecnologia.chamados.domain.model;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -8,13 +8,15 @@ import jakarta.persistence.Table;
 import java.util.UUID;
 
 @Entity
-@Table(name = "status_chamado")
-public class StatusChamado {
+@Table(name = "tipos_chamado")
+public class TipoChamado {
 
     @Id
     @GeneratedValue
     private UUID id;
 
-    private String nome;
+    private String titulo;
+
+    private Integer prazoHoras;
 
 }
