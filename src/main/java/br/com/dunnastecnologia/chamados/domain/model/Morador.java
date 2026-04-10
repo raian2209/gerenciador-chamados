@@ -5,11 +5,14 @@ import jakarta.persistence.Table;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
+import lombok.Getter;
+
 import java.util.HashSet;
 import java.util.Set;
 
 @Entity
 @Table(name = "moradores")
+@Getter
 public class Morador extends Usuario {
 
     @ManyToMany

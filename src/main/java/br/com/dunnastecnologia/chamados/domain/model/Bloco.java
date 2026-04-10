@@ -5,13 +5,14 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Id;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.OneToMany;
-
+import lombok.Getter;
 
 import java.util.List;
 import java.util.UUID;
 
 @Entity
 @Table(name = "blocos")
+@Getter
 public class Bloco {
 
     @Id
