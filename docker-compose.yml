@@ -10,6 +10,7 @@ services:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
+      API_SECURITY_TOKEN_SECRET: ${TOKEN}
 
     ports:
       - "5432:5432"
