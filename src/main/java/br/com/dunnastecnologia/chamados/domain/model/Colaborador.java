@@ -6,5 +6,8 @@ import jakarta.persistence.Table;
 @Entity
 @Table(name = "colaboradores")
 public class Colaborador extends Usuario {
-
+    @Override
+    public String getRole() {
+        return "ROLE_COLABORADOR";
+    }
 }

@@ -25,4 +25,8 @@ public class Morador extends Usuario {
     )
     private Set<Unidade> unidades = new HashSet<>();
 
+    @Override
+    public String getRole() {
+        return "ROLE_MORADOR";
+    }
 }
