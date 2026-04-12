@@ -86,22 +86,31 @@ public class ChamadoService implements ChamadoUseCase {
     public PageResult<Chamado> listarChamadosParaAdmin(
             AuthenticatedUser admin,
             UUID statusId,
-            UUID unidadeId,
+            String moradorNome,
             PageRequest pageRequest
     ) {
         authenticatedUserValidator.assertAdministrador(admin);
-        return PageResultMapper.fromPage(chamadoRepository.buscarParaAdmin(admin.id(), statusId, unidadeId, pageRequest));
+        return PageResultMapper.fromPage(chamadoRepository.buscarParaAdmin(admin.id(), statusId, moradorNome, pageRequest));
     }
 
     @Override
     public PageResult<Chamado> listarChamadosParaColaborador(
             AuthenticatedUser colaborador,
             UUID statusId,
-            UUID unidadeId,
+            UUID tipoChamadoId,
+            String unidadeIdentificacao,
             PageRequest pageRequest
     ) {
         authenticatedUserValidator.assertColaborador(colaborador);
-        return PageResultMapper.fromPage(chamadoRepository.buscarParaColaborador(colaborador.id(), statusId, unidadeId, pageRequest));
+        return PageResultMapper.fromPage(
+                chamadoRepository.buscarParaColaborador(
+                        colaborador.id(),
+                        statusId,
+                        tipoChamadoId,
+                        unidadeIdentificacao,
+                        pageRequest
+                )
+        );
     }
 
     @Override
@@ -180,6 +189,10 @@ public class ChamadoService implements ChamadoUseCase {
             throw new BusinessRuleException("Chamado ja foi finalizado");
         }
 
+        StatusChamado statusFinalizado = statusChamadoRepository.findByNome("Finalizado")
+                .orElseThrow(() -> new BusinessRuleException("Status Finalizado nao foi configurado"));
+
+        chamado.setStatus(statusFinalizado);
         chamado.setDataFinalizacao(LocalDateTime.now());
         return chamadoRepository.save(chamado);
     }

@@ -19,14 +19,15 @@ public interface ChamadoUseCase {
     PageResult<Chamado> listarChamadosParaAdmin(
             AuthenticatedUser admin,
             UUID statusId,
-            UUID unidadeId,
+            String moradorNome,
             PageRequest pageRequest
     );
 
     PageResult<Chamado> listarChamadosParaColaborador(
             AuthenticatedUser colaborador,
             UUID statusId,
-            UUID unidadeId,
+            UUID tipoChamadoId,
+            String unidadeIdentificacao,
             PageRequest pageRequest
     );
 
