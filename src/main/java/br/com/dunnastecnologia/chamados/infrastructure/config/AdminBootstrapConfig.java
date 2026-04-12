@@ -1,0 +1,72 @@
+package br.com.dunnastecnologia.chamados.infrastructure.config;
+
+import br.com.dunnastecnologia.chamados.domain.model.Administrador;
+import br.com.dunnastecnologia.chamados.domain.model.StatusChamado;
+import br.com.dunnastecnologia.chamados.infrastructure.repository.StatusChamadoRepository;
+import br.com.dunnastecnologia.chamados.infrastructure.repository.UsuarioRepository;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.crypto.password.PasswordEncoder;
+
+@Configuration
+public class AdminBootstrapConfig {
+
+    @Bean
+    public CommandLineRunner createDefaultAdministrator(
+            UsuarioRepository usuarioRepository,
+            StatusChamadoRepository statusChamadoRepository,
+            PasswordEncoder passwordEncoder,
+            @Value("${app.bootstrap.admin.enabled:true}") boolean adminBootstrapEnabled,
+            @Value("${app.bootstrap.admin.nome:Administrador}") String adminNome,
+            @Value("${app.bootstrap.admin.email:admin@condominio.local}") String adminEmail,
+            @Value("${app.bootstrap.admin.senha:admin123}") String adminSenha
+    ) {
+        return args -> {
+            ensureDefaultStatuses(statusChamadoRepository);
+
+            if (!adminBootstrapEnabled || usuarioRepository.existsAdministrador()) {
+                return;
+            }
+
+            if (usuarioRepository.existsByEmailIgnoreCase(adminEmail)) {
+                return;
+            }
+
+            Administrador administrador = new Administrador();
+            administrador.setNome(adminNome);
+            administrador.setEmail(adminEmail);
+            administrador.setSenha(passwordEncoder.encode(adminSenha));
+            usuarioRepository.save(administrador);
+        };
+    }
+
+    private void ensureDefaultStatuses(StatusChamadoRepository statusChamadoRepository) {
+        StatusChamado solicitado = statusChamadoRepository.findByNome("Solicitado")
+                .orElseGet(() -> {
+                    StatusChamado status = new StatusChamado();
+                    status.setNome("Solicitado");
+                    status.setInicialPadrao(Boolean.FALSE);
+                    return statusChamadoRepository.save(status);
+                });
+
+        statusChamadoRepository.findByNome("Finalizado")
+                .orElseGet(() -> {
+                    StatusChamado status = new StatusChamado();
+                    status.setNome("Finalizado");
+                    status.setInicialPadrao(Boolean.FALSE);
+                    return statusChamadoRepository.save(status);
+                });
+
+        statusChamadoRepository.findByInicialPadraoTrue()
+                .filter(statusAtual -> !statusAtual.getId().equals(solicitado.getId()))
+                .ifPresent(statusAtual -> {
+                    statusAtual.setInicialPadrao(Boolean.FALSE);
+                    statusChamadoRepository.save(statusAtual);
+                });
+
+        solicitado.setInicialPadrao(Boolean.TRUE);
+        statusChamadoRepository.save(solicitado);
+    }
+}
