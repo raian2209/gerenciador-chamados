@@ -1,0 +1,2 @@
+ALTER TABLE status_chamado
+    ADD COLUMN IF NOT EXISTS inicial_padrao BOOLEAN NOT NULL DEFAULT FALSE;
