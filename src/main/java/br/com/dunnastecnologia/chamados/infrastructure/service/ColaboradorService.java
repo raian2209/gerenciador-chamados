@@ -46,10 +46,17 @@ public class ColaboradorService implements ColaboradorUseCases {
     public PageResult<Chamado> buscarChamados(
             AuthenticatedUser colaborador,
             UUID statusId,
-            UUID unidadeId,
+            UUID tipoChamadoId,
+            String unidadeIdentificacao,
             PageRequest pageRequest
     ) {
-        return chamadoService.listarChamadosParaColaborador(colaborador, statusId, unidadeId, pageRequest);
+        return chamadoService.listarChamadosParaColaborador(
+                colaborador,
+                statusId,
+                tipoChamadoId,
+                unidadeIdentificacao,
+                pageRequest
+        );
     }
 
     @Override
