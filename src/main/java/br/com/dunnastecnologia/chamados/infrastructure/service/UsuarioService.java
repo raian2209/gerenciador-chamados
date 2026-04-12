@@ -14,6 +14,7 @@ import br.com.dunnastecnologia.chamados.infrastructure.repository.UsuarioReposit
 import br.com.dunnastecnologia.chamados.infrastructure.service.support.AuthenticatedUserValidator;
 import br.com.dunnastecnologia.chamados.infrastructure.service.support.PageResultMapper;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,17 +30,20 @@ public class UsuarioService implements UsuarioUseCase {
     private final MoradorRepository moradorRepository;
     private final UnidadeRepository unidadeRepository;
     private final AuthenticatedUserValidator authenticatedUserValidator;
+    private final PasswordEncoder passwordEncoder;
 
     public UsuarioService(
             UsuarioRepository usuarioRepository,
             MoradorRepository moradorRepository,
             UnidadeRepository unidadeRepository,
-            AuthenticatedUserValidator authenticatedUserValidator
+            AuthenticatedUserValidator authenticatedUserValidator,
+            PasswordEncoder passwordEncoder
     ) {
         this.usuarioRepository = usuarioRepository;
         this.moradorRepository = moradorRepository;
         this.unidadeRepository = unidadeRepository;
         this.authenticatedUserValidator = authenticatedUserValidator;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
@@ -48,6 +52,7 @@ public class UsuarioService implements UsuarioUseCase {
         authenticatedUserValidator.assertAdministrador(admin);
         validateUsuario(usuario);
         validateUniqueEmail(usuario.getEmail(), null);
+        usuario.setSenha(passwordEncoder.encode(usuario.getSenha()));
         return usuarioRepository.save(usuario);
     }
 
@@ -66,7 +71,7 @@ public class UsuarioService implements UsuarioUseCase {
 
         persistedUsuario.setNome(usuario.getNome());
         persistedUsuario.setEmail(usuario.getEmail());
-        persistedUsuario.setSenha(usuario.getSenha());
+        persistedUsuario.setSenha(passwordEncoder.encode(usuario.getSenha()));
 
         if (persistedUsuario instanceof Morador persistedMorador && usuario instanceof Morador sourceMorador) {
             Set<Unidade> unidades = sourceMorador.getUnidades() == null

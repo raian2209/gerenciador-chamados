@@ -21,4 +21,12 @@ public interface UsuarioRepository extends JpaRepository<Usuario, UUID> {
             where lower(u.email) = lower(:email)
             """)
     Optional<Usuario> findByEmail(@Param("email") String email);
+
+    @Query("""
+            select count(a) > 0
+            from Administrador a
+            """)
+    boolean existsAdministrador();
+
+    boolean existsByEmailIgnoreCase(String email);
 }
