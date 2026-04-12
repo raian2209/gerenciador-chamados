@@ -19,17 +19,17 @@ public interface ChamadoRepository extends JpaRepository<Chamado, UUID> {
      */
     @Query(value = """
             select *
-            from fn_listar_chamados_para_admin(:adminId, :statusId, :unidadeId)
+            from fn_listar_chamados_para_admin(:adminId, :statusId, :moradorNome)
             """,
             countQuery = """
             select count(*)
-            from fn_listar_chamados_para_admin(:adminId, :statusId, :unidadeId)
+            from fn_listar_chamados_para_admin(:adminId, :statusId, :moradorNome)
             """,
             nativeQuery = true)
     Page<Chamado> buscarParaAdmin(
             @Param("adminId") UUID adminId,
             @Param("statusId") UUID statusId,
-            @Param("unidadeId") UUID unidadeId,
+            @Param("moradorNome") String moradorNome,
             Pageable pageable
     );
 
@@ -52,17 +52,18 @@ public interface ChamadoRepository extends JpaRepository<Chamado, UUID> {
      */
     @Query(value = """
             select *
-            from fn_listar_chamados_do_colaborador(:colaboradorId, :statusId, :unidadeId)
+            from fn_listar_chamados_do_colaborador(:colaboradorId, :statusId, :tipoChamadoId, :unidadeIdentificacao)
             """,
             countQuery = """
             select count(*)
-            from fn_listar_chamados_do_colaborador(:colaboradorId, :statusId, :unidadeId)
+            from fn_listar_chamados_do_colaborador(:colaboradorId, :statusId, :tipoChamadoId, :unidadeIdentificacao)
             """,
             nativeQuery = true)
     Page<Chamado> buscarParaColaborador(
             @Param("colaboradorId") UUID colaboradorId,
             @Param("statusId") UUID statusId,
-            @Param("unidadeId") UUID unidadeId,
+            @Param("tipoChamadoId") UUID tipoChamadoId,
+            @Param("unidadeIdentificacao") String unidadeIdentificacao,
             Pageable pageable
     );
 

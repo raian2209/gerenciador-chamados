@@ -26,7 +26,8 @@ public interface ColaboradorUseCases {
     PageResult<Chamado> buscarChamados(
             AuthenticatedUser colaborador,
             UUID statusId,
-            UUID unidadeId,
+            UUID tipoChamadoId,
+            String unidadeIdentificacao,
             PageRequest pageRequest
     );
 
