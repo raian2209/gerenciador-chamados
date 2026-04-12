@@ -6,6 +6,7 @@ import br.com.dunnastecnologia.chamados.application.pagination.PageResult;
 import br.com.dunnastecnologia.chamados.domain.model.Bloco;
 import br.com.dunnastecnologia.chamados.domain.model.Chamado;
 import br.com.dunnastecnologia.chamados.domain.model.Comentario;
+import br.com.dunnastecnologia.chamados.domain.model.Morador;
 import br.com.dunnastecnologia.chamados.domain.model.StatusChamado;
 import br.com.dunnastecnologia.chamados.domain.model.TipoChamado;
 import br.com.dunnastecnologia.chamados.domain.model.Unidade;
@@ -13,6 +14,7 @@ import br.com.dunnastecnologia.chamados.domain.model.Usuario;
 import br.com.dunnastecnologia.chamados.infrastructure.exception.BusinessRuleException;
 import br.com.dunnastecnologia.chamados.infrastructure.exception.ResourceNotFoundException;
 import br.com.dunnastecnologia.chamados.infrastructure.repository.BlocoRepository;
+import br.com.dunnastecnologia.chamados.infrastructure.repository.MoradorRepository;
 import br.com.dunnastecnologia.chamados.infrastructure.repository.UnidadeRepository;
 import br.com.dunnastecnologia.chamados.infrastructure.service.support.AuthenticatedUserValidator;
 import br.com.dunnastecnologia.chamados.infrastructure.service.support.PageResultMapper;
@@ -27,6 +29,7 @@ import java.util.UUID;
 public class AdminService implements AdminUseCases {
 
     private final BlocoRepository blocoRepository;
+    private final MoradorRepository moradorRepository;
     private final UnidadeRepository unidadeRepository;
     private final UsuarioService usuarioService;
     private final TipoChamadoService tipoChamadoService;
@@ -37,6 +40,7 @@ public class AdminService implements AdminUseCases {
 
     public AdminService(
             BlocoRepository blocoRepository,
+            MoradorRepository moradorRepository,
             UnidadeRepository unidadeRepository,
             UsuarioService usuarioService,
             TipoChamadoService tipoChamadoService,
@@ -46,6 +50,7 @@ public class AdminService implements AdminUseCases {
             AuthenticatedUserValidator authenticatedUserValidator
     ) {
         this.blocoRepository = blocoRepository;
+        this.moradorRepository = moradorRepository;
         this.unidadeRepository = unidadeRepository;
         this.usuarioService = usuarioService;
         this.tipoChamadoService = tipoChamadoService;
@@ -114,6 +119,34 @@ public class AdminService implements AdminUseCases {
     @Override
     public PageResult<Usuario> listarUsuarios(PageRequest pageRequest) {
         return usuarioService.listarUsuarios(pageRequest);
+    }
+
+    @Override
+    public PageResult<Morador> listarMoradores(PageRequest pageRequest) {
+        return PageResultMapper.fromPage(moradorRepository.findAll(pageRequest));
+    }
+
+    @Override
+    public PageResult<Morador> listarMoradoresPorPrefixoEmail(String prefixoEmail, PageRequest pageRequest) {
+        if (prefixoEmail == null || prefixoEmail.isBlank()) {
+            return listarMoradores(pageRequest);
+        }
+        return PageResultMapper.fromPage(moradorRepository.findByEmailStartingWithIgnoreCase(prefixoEmail.trim(), pageRequest));
+    }
+
+    @Override
+    public PageResult<Morador> listarMoradoresSemUnidade(PageRequest pageRequest) {
+        return PageResultMapper.fromPage(moradorRepository.findByUnidadesIsEmpty(pageRequest));
+    }
+
+    @Override
+    public PageResult<Morador> listarMoradoresSemUnidadePorPrefixoEmail(String prefixoEmail, PageRequest pageRequest) {
+        if (prefixoEmail == null || prefixoEmail.isBlank()) {
+            return listarMoradoresSemUnidade(pageRequest);
+        }
+        return PageResultMapper.fromPage(
+                moradorRepository.findByUnidadesIsEmptyAndEmailStartingWithIgnoreCase(prefixoEmail.trim(), pageRequest)
+        );
     }
 
     @Override
@@ -195,8 +228,8 @@ public class AdminService implements AdminUseCases {
     }
 
     @Override
-    public PageResult<Chamado> buscarChamados(AuthenticatedUser admin, UUID statusId, UUID unidadeId, PageRequest pageRequest) {
-        return chamadoService.listarChamadosParaAdmin(admin, statusId, unidadeId, pageRequest);
+    public PageResult<Chamado> buscarChamados(AuthenticatedUser admin, UUID statusId, String moradorNome, PageRequest pageRequest) {
+        return chamadoService.listarChamadosParaAdmin(admin, statusId, moradorNome, pageRequest);
     }
 
     @Override

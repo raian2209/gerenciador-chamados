@@ -5,6 +5,7 @@ import br.com.dunnastecnologia.chamados.application.pagination.PageResult;
 import br.com.dunnastecnologia.chamados.domain.model.Bloco;
 import br.com.dunnastecnologia.chamados.domain.model.Chamado;
 import br.com.dunnastecnologia.chamados.domain.model.Comentario;
+import br.com.dunnastecnologia.chamados.domain.model.Morador;
 import br.com.dunnastecnologia.chamados.domain.model.StatusChamado;
 import br.com.dunnastecnologia.chamados.domain.model.TipoChamado;
 import br.com.dunnastecnologia.chamados.domain.model.Unidade;
@@ -73,6 +74,28 @@ public interface AdminUseCases {
      *  para dar visibilidade paginada aos usuarios cadastrados durante a operacao administrativa.
      */
     PageResult<Usuario> listarUsuarios(PageRequest pageRequest);
+
+    /**
+     * Existe para fornecer ao administrador uma lista direta de moradores
+     * durante o processo de vinculacao com unidades.
+     */
+    PageResult<Morador> listarMoradores(PageRequest pageRequest);
+
+    /**
+     * Existe para localizar moradores pelo prefixo do e-mail
+     * durante o processo de vinculacao com unidades.
+     */
+    PageResult<Morador> listarMoradoresPorPrefixoEmail(String prefixoEmail, PageRequest pageRequest);
+
+    /**
+     * Existe para destacar moradores que ainda nao possuem unidade vinculada.
+     */
+    PageResult<Morador> listarMoradoresSemUnidade(PageRequest pageRequest);
+
+    /**
+     * Existe para localizar moradores sem unidade pelo prefixo do e-mail.
+     */
+    PageResult<Morador> listarMoradoresSemUnidadePorPrefixoEmail(String prefixoEmail, PageRequest pageRequest);
 
     /**
      *  para detalhar um usuario especifico antes de manutencao, auditoria ou vinculacao.
@@ -190,7 +213,7 @@ public interface AdminUseCases {
     PageResult<Chamado> buscarChamados(
             AuthenticatedUser admin,
             UUID statusId,
-            UUID unidadeId,
+            String moradorNome,
             PageRequest pageRequest
     );
 
