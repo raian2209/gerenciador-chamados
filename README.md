@@ -2,71 +2,6 @@
 
 Este projeto implementa um sistema de gerenciamento de chamados para condomínio, com separação por perfis de acesso, controle de estrutura física do condomínio e acompanhamento completo do ciclo de vida do chamado.
 
-## Variáveis de ambiente
-
-Para executar o projeto com `docker compose`, crie um arquivo `.env` na raiz com o seguinte conteúdo:
-
-```env
-DB_USER=postgres
-DB_PASSWORD=postgres
-DB_NAME=condominio
-TOKEN=4qhq8LrEBfYcaRHxhdb9zURb2rf8e7UdEaKS9uQhRHM=
-```
-
-### Finalidade de cada variável
-
-- `DB_USER`: usuário do PostgreSQL usado pelo container do banco e pela aplicação.
-- `DB_PASSWORD`: senha do PostgreSQL usada no banco e na conexão da aplicação.
-- `DB_NAME`: nome do banco de dados que será criado no container.
-- `TOKEN`: segredo usado pela camada de segurança para geração e validação de autenticação baseada em token.
-
-## Execução com Docker Compose
-
-### Pré-requisitos
-
-- Docker instalado.
-- Docker Compose disponível no ambiente.
-
-### Passos para subir o ambiente
-
-1. Criar o arquivo `.env` na raiz do projeto.
-2. Executar:
-
-```bash
-docker compose up --build
-```
-
-### O que será iniciado
-
-- Serviço `db`: container PostgreSQL 16 na porta `5432`.
-- Serviço `app`: aplicação Java na porta `8080`.
-
-### Como o `docker-compose.yml` se relaciona com o projeto
-
-- O serviço `db` usa as variáveis `DB_USER`, `DB_PASSWORD` e `DB_NAME` para inicializar o PostgreSQL.
-- O serviço `app` usa essas mesmas variáveis para montar a URL JDBC e credenciais da aplicação.
-- A aplicação só sobe depois de o banco estar saudável, por causa do `depends_on` com `healthcheck`.
-- A decisão de compartilhar o `.env` entre `db` e `app` evita duplicação de configuração e reduz risco de inconsistência entre banco e aplicação.
-
-## Inicialização e Credenciais Padrão (Bootstrap)
-
-### `src/main/java/br/com/dunnastecnologia/chamados/infrastructure/config/AdminBootstrapConfig.java`
-
-### Credenciais de Acesso (Administrador)
-Se o banco de dados estiver vazio, o sistema criará automaticamente um usuário administrador padrão. Você pode usar essas credenciais para fazer o primeiro login no painel:
-
-- E-mail: admin@condominio.local
-
-- Senha: admin123
-
-(Nota: Estes valores podem ser facilmente customizados alterando as propriedades app.bootstrap.admin.* no seu arquivo application.properties ou injetando variáveis de ambiente no Docker).
-
-### Status de Chamados Obrigatórios
-   A inicialização também garante a integridade do fluxo de trabalho do condomínio. O código verifica e cria automaticamente os status essenciais do sistema:
-
-- Solicitado: É o status de entrada. O sistema é configurado para marcá-lo automaticamente como o Status Inicial Padrão, ou seja, todo novo chamado aberto por um morador cairá neste status.
-
-- Finalizado: Garante que o status de encerramento do ciclo de vida de um chamado sempre exista no banco de dados.
 
 ## Estrutura do Projeto e Princípios de Arquitetura
 
@@ -140,10 +75,13 @@ O sistema gira em torno de quatro frentes principais:
 - Atualização de status e finalização por administrador ou colaborador.
 - Listagem paginada e filtrada conforme perfil de acesso.
 
+
 ### Histórico e evidências
 
 - Registro de comentários vinculados ao chamado com autoria.
-- Inclusão e download de anexos.
+- Inclusão e download de anexos. 
+  - Inclusão:Morador 
+  - Download:Colaborador , Administrador
 - Persistência de datas de abertura e finalização para rastreabilidade operacional.
 
 ## Clean Architecture no projeto
@@ -246,6 +184,8 @@ O projeto não segue uma implementação acadêmica pura de Clean Architecture, 
 - A tabela `usuarios` guarda a identidade comum, enquanto tabelas filhas materializam os papéis.
 - Essa decisão reflete diretamente a regra de negócio, que possui três tipos de usuário com capacidades diferentes.
 - Também evita duplicação de `nome`, `email` e `senha` em várias tabelas independentes.
+
+# Diagrama Relacional
 
 ## Documentação dos Modelos
 
@@ -397,3 +337,75 @@ O modelo cobre bem a base do problema:
 - Vínculo de morador com uma ou mais unidades.
 - Abertura de chamados com tipo, descrição, anexos e status.
 - Comentários com autoria e histórico.
+
+# Executar o Projeto
+
+## Variáveis de ambiente
+
+Para executar o projeto com `docker compose`, crie um arquivo `.env` na raiz com o seguinte conteúdo:
+
+```env
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_NAME=condominio
+TOKEN=4qhq8LrEBfYcaRHxhdb9zURb2rf8e7UdEaKS9uQhRHM=
+```
+
+### Finalidade de cada variável
+
+- `DB_USER`: usuário do PostgreSQL usado pelo container do banco e pela aplicação.
+- `DB_PASSWORD`: senha do PostgreSQL usada no banco e na conexão da aplicação.
+- `DB_NAME`: nome do banco de dados que será criado no container.
+- `TOKEN`: segredo usado pela camada de segurança para geração e validação de autenticação baseada em token.
+
+## Execução com Docker Compose
+
+### Pré-requisitos
+
+- Docker instalado.
+- Docker Compose disponível no ambiente.
+
+### Passos para subir o ambiente
+
+1. Criar o arquivo `.env` na raiz do projeto.
+2. Executar:
+
+```bash
+docker compose up --build
+```
+
+### O que será iniciado
+
+- Serviço `db`: container PostgreSQL 16 na porta `5432`.
+- Serviço `app`: aplicação Java na porta `8080`.
+
+### Como o `docker-compose.yml` se relaciona com o projeto
+
+- O serviço `db` usa as variáveis `DB_USER`, `DB_PASSWORD` e `DB_NAME` para inicializar o PostgreSQL.
+- O serviço `app` usa essas mesmas variáveis para montar a URL JDBC e credenciais da aplicação.
+- A aplicação só sobe depois de o banco estar saudável, por causa do `depends_on` com `healthcheck`.
+- A decisão de compartilhar o `.env` entre `db` e `app` evita duplicação de configuração e reduz risco de inconsistência entre banco e aplicação.
+
+## Inicialização e Credenciais Padrão (Bootstrap)
+
+### `src/main/java/br/com/dunnastecnologia/chamados/infrastructure/config/AdminBootstrapConfig.java`
+
+### Credenciais de Acesso (Administrador)
+Se o banco de dados estiver vazio, o sistema criará automaticamente um usuário administrador padrão. Você pode usar essas credenciais para fazer o primeiro login no painel:
+
+- E-mail: admin@condominio.local
+
+- Senha: admin123
+
+(Nota: Estes valores podem ser facilmente customizados alterando as propriedades app.bootstrap.admin.* no seu arquivo application.properties ou injetando variáveis de ambiente no Docker).
+
+### Status de Chamados Obrigatórios
+A inicialização também garante a integridade do fluxo de trabalho do condomínio. O código verifica e cria automaticamente os status essenciais do sistema:
+
+- Solicitado: É o status de entrada. O sistema é configurado para marcá-lo automaticamente como o Status Inicial Padrão, ou seja, todo novo chamado aberto por um morador cairá neste status.
+
+- Finalizado: Garante que o status de encerramento do ciclo de vida de um chamado sempre exista no banco de dados.
+
+### Acessando a Aplicação
+
+- Interface Web (Página de Login): http://localhost:8080/
