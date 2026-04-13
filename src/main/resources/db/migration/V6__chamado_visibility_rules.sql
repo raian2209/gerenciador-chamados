@@ -1,3 +1,9 @@
+-- =========================================================
+-- V6 - Consolidacao das regras de visibilidade dos chamados
+-- Ajusta funcoes de listagem e visualizacao por perfil
+-- =========================================================
+
+-- Listagem do morador com validacao de unidade vinculada
 CREATE OR REPLACE FUNCTION fn_listar_chamados_do_morador(
     p_morador_id UUID
 )
@@ -29,6 +35,7 @@ AS $$
 $$;
 
 
+-- Visualizacao do colaborador limitada a chamados em aberto
 CREATE OR REPLACE FUNCTION fn_colaborador_pode_visualizar_chamado(
     p_colaborador_id UUID,
     p_chamado_id UUID
@@ -65,6 +72,7 @@ END;
 $$;
 
 
+-- Listagem operacional do colaborador
 CREATE OR REPLACE FUNCTION fn_listar_chamados_do_colaborador(
     p_colaborador_id UUID,
     p_status_id UUID DEFAULT NULL,
@@ -108,6 +116,7 @@ END;
 $$;
 
 
+-- Busca de detalhe para o colaborador
 CREATE OR REPLACE FUNCTION fn_buscar_chamado_para_colaborador(
     p_colaborador_id UUID,
     p_chamado_id UUID
@@ -144,6 +153,7 @@ END;
 $$;
 
 
+-- Listagem administrativa com filtros opcionais
 CREATE OR REPLACE FUNCTION fn_listar_chamados_para_admin(
     p_admin_id UUID,
     p_status_id UUID DEFAULT NULL,

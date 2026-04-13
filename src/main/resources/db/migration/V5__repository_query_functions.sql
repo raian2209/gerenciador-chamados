@@ -1,3 +1,9 @@
+-- =========================================================
+-- V5 - Funcoes de apoio aos repositories
+-- Centraliza consultas usadas pela camada de persistencia
+-- =========================================================
+
+-- Busca detalhada de chamado no contexto do morador
 CREATE OR REPLACE FUNCTION fn_buscar_chamado_do_morador(
     p_morador_id UUID,
     p_chamado_id UUID
@@ -33,6 +39,7 @@ END;
 $$;
 
 
+-- Busca detalhada de chamado no contexto do administrador
 CREATE OR REPLACE FUNCTION fn_buscar_chamado_para_admin(
     p_admin_id UUID,
     p_chamado_id UUID
@@ -68,6 +75,7 @@ END;
 $$;
 
 
+-- Consulta de unidades pertencentes a um bloco
 CREATE OR REPLACE FUNCTION fn_listar_unidades_do_bloco(
     p_bloco_id UUID
 )
@@ -90,6 +98,7 @@ AS $$
 $$;
 
 
+-- Consulta de unidades vinculadas a um morador
 CREATE OR REPLACE FUNCTION fn_listar_unidades_do_morador(
     p_morador_id UUID
 )
@@ -113,6 +122,7 @@ AS $$
 $$;
 
 
+-- Consulta cronologica de comentarios de um chamado
 CREATE OR REPLACE FUNCTION fn_listar_comentarios_do_chamado(
     p_chamado_id UUID
 )

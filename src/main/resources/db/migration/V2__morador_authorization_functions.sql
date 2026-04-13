@@ -1,3 +1,9 @@
+-- =========================================================
+-- V2 - Regras de autorizacao do morador
+-- Define funcoes de permissao, assertivas e listagem
+-- =========================================================
+
+-- Vinculo entre morador e unidade
 CREATE OR REPLACE FUNCTION fn_morador_possui_unidade(
     p_morador_id UUID,
     p_unidade_id UUID
@@ -15,6 +21,7 @@ AS $$
 $$;
 
 
+-- Permissao para abertura de chamado
 CREATE OR REPLACE FUNCTION fn_morador_pode_abrir_chamado(
     p_morador_id UUID,
     p_unidade_id UUID
@@ -27,6 +34,7 @@ AS $$
 $$;
 
 
+-- Permissao para visualizacao de chamado
 CREATE OR REPLACE FUNCTION fn_morador_pode_ver_chamado(
     p_morador_id UUID,
     p_chamado_id UUID
@@ -45,6 +53,7 @@ AS $$
 $$;
 
 
+-- Permissao para comentario em chamado
 CREATE OR REPLACE FUNCTION fn_morador_pode_comentar_chamado(
     p_morador_id UUID,
     p_chamado_id UUID
@@ -57,6 +66,7 @@ AS $$
 $$;
 
 
+-- Assertivas de seguranca para uso em queries e procedures
 CREATE OR REPLACE FUNCTION fn_assert_morador_pode_abrir_chamado(
     p_morador_id UUID,
     p_unidade_id UUID
@@ -111,6 +121,7 @@ END;
 $$;
 
 
+-- Consulta principal de chamados do morador
 CREATE OR REPLACE FUNCTION fn_listar_chamados_do_morador(
     p_morador_id UUID
 )
@@ -142,5 +153,6 @@ AS $$
 $$;
 
 
+-- Indice composto de apoio a visibilidade do morador
 CREATE INDEX idx_chamados_morador_unidade
     ON chamados (morador_id, unidade_id);

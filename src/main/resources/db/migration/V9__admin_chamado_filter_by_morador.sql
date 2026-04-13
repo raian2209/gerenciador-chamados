@@ -1,5 +1,12 @@
+-- =========================================================
+-- V9 - Filtro administrativo por morador
+-- Ajusta a funcao de listagem do admin para receber morador_id
+-- =========================================================
+
+-- Remove assinatura anterior para recriar a funcao com novo filtro
 DROP FUNCTION IF EXISTS fn_listar_chamados_para_admin(uuid, uuid, uuid);
 
+-- Recria a listagem do admin com filtro opcional por morador
 CREATE OR REPLACE FUNCTION fn_listar_chamados_para_admin(
     p_admin_id UUID,
     p_status_id UUID DEFAULT NULL,

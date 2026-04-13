@@ -1,5 +1,12 @@
+-- =========================================================
+-- V11 - Filtros operacionais do colaborador
+-- Evolui a listagem para filtrar por tipo e identificacao da unidade
+-- =========================================================
+
+-- Remove a assinatura anterior antes de recriar a funcao
 DROP FUNCTION IF EXISTS fn_listar_chamados_do_colaborador(uuid, uuid, uuid);
 
+-- Recria a listagem do colaborador com filtros textuais e por tipo
 CREATE OR REPLACE FUNCTION fn_listar_chamados_do_colaborador(
     p_colaborador_id UUID,
     p_status_id UUID DEFAULT NULL,

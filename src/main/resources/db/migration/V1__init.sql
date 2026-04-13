@@ -1,5 +1,12 @@
+-- =========================================================
+-- V1 - Estrutura inicial do banco
+-- Cria extensao UUID, tabelas base do dominio e indices
+-- =========================================================
+
+-- Extensoes necessarias
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
+-- Identidade e acesso
 CREATE TABLE usuarios (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     nome VARCHAR(255),
@@ -25,6 +32,7 @@ CREATE TABLE moradores (
         FOREIGN KEY (id) REFERENCES usuarios (id)
 );
 
+-- Estrutura fisica do condominio
 CREATE TABLE blocos (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     identificacao VARCHAR(255),
@@ -51,6 +59,7 @@ CREATE TABLE morador_unidade (
         FOREIGN KEY (unidade_id) REFERENCES unidades (id)
 );
 
+-- Catalogos operacionais
 CREATE TABLE tipos_chamado (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     titulo VARCHAR(255),
@@ -62,6 +71,7 @@ CREATE TABLE status_chamado (
     nome VARCHAR(255)
 );
 
+-- Operacao de chamados
 CREATE TABLE chamados (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     descricao VARCHAR(255),
@@ -81,6 +91,7 @@ CREATE TABLE chamados (
         FOREIGN KEY (status_id) REFERENCES status_chamado (id)
 );
 
+-- Historico textual
 CREATE TABLE comentarios (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     mensagem VARCHAR(255),
@@ -93,6 +104,7 @@ CREATE TABLE comentarios (
         FOREIGN KEY (chamado_id) REFERENCES chamados (id)
 );
 
+-- Indices de apoio a consultas e relacionamentos
 CREATE INDEX idx_unidades_bloco_id ON unidades (bloco_id);
 CREATE INDEX idx_morador_unidade_unidade_id ON morador_unidade (unidade_id);
 CREATE INDEX idx_chamados_morador_id ON chamados (morador_id);

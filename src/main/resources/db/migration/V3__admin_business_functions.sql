@@ -1,3 +1,9 @@
+-- =========================================================
+-- V3 - Regras de negocio e autorizacao do administrador
+-- Define funcoes de validacao, geracao de unidades e consultas
+-- =========================================================
+
+-- Existencia e identidade do administrador
 CREATE OR REPLACE FUNCTION fn_admin_existe(
     p_admin_id UUID
 )
@@ -30,6 +36,7 @@ END;
 $$;
 
 
+-- Permissoes administrativas por contexto
 CREATE OR REPLACE FUNCTION fn_admin_pode_gerenciar_estrutura(
     p_admin_id UUID
 )
@@ -114,6 +121,7 @@ END;
 $$;
 
 
+-- Permissoes sobre chamados
 CREATE OR REPLACE FUNCTION fn_admin_pode_visualizar_chamado(
     p_admin_id UUID,
     p_chamado_id UUID
@@ -254,6 +262,7 @@ END;
 $$;
 
 
+-- Geracao automatica de identificacao das unidades
 CREATE OR REPLACE FUNCTION fn_gerar_identificacao_unidade(
     p_bloco_identificacao VARCHAR(255),
     p_andar INTEGER,
@@ -272,6 +281,7 @@ AS $$
 $$;
 
 
+-- Geracao automatica das unidades de um bloco
 CREATE OR REPLACE FUNCTION fn_gerar_unidades_bloco(
     p_admin_id UUID,
     p_bloco_id UUID
@@ -353,6 +363,7 @@ END;
 $$;
 
 
+-- Consulta administrativa de chamados
 CREATE OR REPLACE FUNCTION fn_listar_chamados_para_admin(
     p_admin_id UUID,
     p_status_id UUID DEFAULT NULL,

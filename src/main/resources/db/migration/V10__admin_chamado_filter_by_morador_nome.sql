@@ -1,5 +1,12 @@
+-- =========================================================
+-- V10 - Filtro administrativo por prefixo do nome do morador
+-- Evolui a listagem do admin de UUID para busca textual
+-- =========================================================
+
+-- Remove a assinatura anterior antes de recriar a funcao
 DROP FUNCTION IF EXISTS fn_listar_chamados_para_admin(uuid, uuid, uuid);
 
+-- Recria a listagem do admin com filtro opcional por prefixo de nome
 CREATE OR REPLACE FUNCTION fn_listar_chamados_para_admin(
     p_admin_id UUID,
     p_status_id UUID DEFAULT NULL,

@@ -1,3 +1,9 @@
+-- =========================================================
+-- V4 - Regras de negocio e autorizacao do colaborador
+-- Define escopo, permissao de atendimento e consultas
+-- =========================================================
+
+-- Existencia e identidade do colaborador
 CREATE OR REPLACE FUNCTION fn_colaborador_existe(
     p_colaborador_id UUID
 )
@@ -30,6 +36,7 @@ END;
 $$;
 
 
+-- Escopo operacional do colaborador
 CREATE OR REPLACE FUNCTION fn_colaborador_pode_acessar_escopo(
     p_colaborador_id UUID,
     p_chamado_id UUID DEFAULT NULL,
@@ -90,6 +97,7 @@ END;
 $$;
 
 
+-- Permissoes sobre o chamado
 CREATE OR REPLACE FUNCTION fn_colaborador_pode_visualizar_chamado(
     p_colaborador_id UUID,
     p_chamado_id UUID
@@ -229,6 +237,7 @@ END;
 $$;
 
 
+-- Consulta principal de chamados do colaborador
 CREATE OR REPLACE FUNCTION fn_listar_chamados_do_colaborador(
     p_colaborador_id UUID,
     p_status_id UUID DEFAULT NULL,
@@ -271,6 +280,7 @@ END;
 $$;
 
 
+-- Consulta de detalhe de um chamado para o colaborador
 CREATE OR REPLACE FUNCTION fn_buscar_chamado_para_colaborador(
     p_colaborador_id UUID,
     p_chamado_id UUID
