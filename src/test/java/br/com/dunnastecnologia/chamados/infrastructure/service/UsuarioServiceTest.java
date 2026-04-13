@@ -1,12 +1,16 @@
 package br.com.dunnastecnologia.chamados.infrastructure.service;
 
 import br.com.dunnastecnologia.chamados.application.Security.AuthenticatedUser;
+import br.com.dunnastecnologia.chamados.domain.model.Colaborador;
 import br.com.dunnastecnologia.chamados.domain.model.Morador;
+import br.com.dunnastecnologia.chamados.domain.model.TipoChamado;
 import br.com.dunnastecnologia.chamados.domain.model.Unidade;
 import br.com.dunnastecnologia.chamados.domain.model.Usuario;
+import br.com.dunnastecnologia.chamados.infrastructure.repository.ColaboradorRepository;
 import br.com.dunnastecnologia.chamados.infrastructure.exception.BusinessRuleException;
 import br.com.dunnastecnologia.chamados.infrastructure.exception.ResourceNotFoundException;
 import br.com.dunnastecnologia.chamados.infrastructure.repository.MoradorRepository;
+import br.com.dunnastecnologia.chamados.infrastructure.repository.TipoChamadoRepository;
 import br.com.dunnastecnologia.chamados.infrastructure.repository.UnidadeRepository;
 import br.com.dunnastecnologia.chamados.infrastructure.repository.UsuarioRepository;
 import br.com.dunnastecnologia.chamados.infrastructure.service.support.AuthenticatedUserValidator;
@@ -35,9 +39,13 @@ class UsuarioServiceTest {
     @Mock
     private UsuarioRepository usuarioRepository;
     @Mock
+    private ColaboradorRepository colaboradorRepository;
+    @Mock
     private MoradorRepository moradorRepository;
     @Mock
     private UnidadeRepository unidadeRepository;
+    @Mock
+    private TipoChamadoRepository tipoChamadoRepository;
     @Mock
     private AuthenticatedUserValidator authenticatedUserValidator;
     @Mock
@@ -144,5 +152,46 @@ class UsuarioServiceTest {
         usuarioService.listarUsuarios(pageRequest);
 
         verify(usuarioRepository).findAllActive(pageRequest);
+    }
+
+    @Test
+    void vincularColaboradorTipoChamadoDeveAdicionarTipoAoColaborador() {
+        AuthenticatedUser admin = new AuthenticatedUser(UUID.randomUUID(), "admin@cond.local", "ROLE_ADMINISTRADOR");
+        UUID colaboradorId = UUID.randomUUID();
+        UUID tipoChamadoId = UUID.randomUUID();
+
+        Colaborador colaborador = new Colaborador();
+        colaborador.setId(colaboradorId);
+
+        TipoChamado tipoChamado = new TipoChamado();
+        tipoChamado.setId(tipoChamadoId);
+
+        when(colaboradorRepository.findByIdAndAtivoTrue(colaboradorId)).thenReturn(Optional.of(colaborador));
+        when(tipoChamadoRepository.findById(tipoChamadoId)).thenReturn(Optional.of(tipoChamado));
+
+        usuarioService.vincularColaboradorTipoChamado(admin, colaboradorId, tipoChamadoId);
+
+        assertEquals(1, colaborador.getTiposChamadoResponsaveis().size());
+        verify(colaboradorRepository).save(colaborador);
+    }
+
+    @Test
+    void desvincularColaboradorTipoChamadoDeveRemoverTipoDoColaborador() {
+        AuthenticatedUser admin = new AuthenticatedUser(UUID.randomUUID(), "admin@cond.local", "ROLE_ADMINISTRADOR");
+        UUID colaboradorId = UUID.randomUUID();
+        UUID tipoChamadoId = UUID.randomUUID();
+
+        Colaborador colaborador = new Colaborador();
+        colaborador.setId(colaboradorId);
+        TipoChamado tipoChamado = new TipoChamado();
+        tipoChamado.setId(tipoChamadoId);
+        colaborador.getTiposChamadoResponsaveis().add(tipoChamado);
+
+        when(colaboradorRepository.findByIdAndAtivoTrue(colaboradorId)).thenReturn(Optional.of(colaborador));
+
+        usuarioService.desvincularColaboradorTipoChamado(admin, colaboradorId, tipoChamadoId);
+
+        assertEquals(0, colaborador.getTiposChamadoResponsaveis().size());
+        verify(colaboradorRepository).save(colaborador);
     }
 }
