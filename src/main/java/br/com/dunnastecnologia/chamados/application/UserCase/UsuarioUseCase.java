@@ -2,6 +2,8 @@ package br.com.dunnastecnologia.chamados.application.UserCase;
 
 import br.com.dunnastecnologia.chamados.application.Security.AuthenticatedUser;
 import br.com.dunnastecnologia.chamados.application.pagination.PageResult;
+import br.com.dunnastecnologia.chamados.domain.model.Colaborador;
+import br.com.dunnastecnologia.chamados.domain.model.TipoChamado;
 import br.com.dunnastecnologia.chamados.domain.model.Usuario;
 import org.springframework.data.domain.PageRequest;
 
@@ -40,4 +42,22 @@ public interface UsuarioUseCase {
             UUID moradorId,
             UUID unidadeId
     );
+
+    void vincularColaboradorTipoChamado(
+            AuthenticatedUser admin,
+            UUID colaboradorId,
+            UUID tipoChamadoId
+    );
+
+    void desvincularColaboradorTipoChamado(
+            AuthenticatedUser admin,
+            UUID colaboradorId,
+            UUID tipoChamadoId
+    );
+
+    PageResult<TipoChamado> listarTiposChamadoDoColaborador(UUID colaboradorId, PageRequest pageRequest);
+
+    PageResult<Colaborador> listarColaboradores(PageRequest pageRequest);
+
+    PageResult<Colaborador> listarColaboradoresPorPrefixoEmail(String prefixoEmail, PageRequest pageRequest);
 }
