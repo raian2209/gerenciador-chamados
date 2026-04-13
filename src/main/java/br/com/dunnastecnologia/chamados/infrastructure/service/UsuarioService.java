@@ -3,12 +3,16 @@ package br.com.dunnastecnologia.chamados.infrastructure.service;
 import br.com.dunnastecnologia.chamados.application.Security.AuthenticatedUser;
 import br.com.dunnastecnologia.chamados.application.UserCase.UsuarioUseCase;
 import br.com.dunnastecnologia.chamados.application.pagination.PageResult;
+import br.com.dunnastecnologia.chamados.domain.model.Colaborador;
 import br.com.dunnastecnologia.chamados.domain.model.Morador;
+import br.com.dunnastecnologia.chamados.domain.model.TipoChamado;
 import br.com.dunnastecnologia.chamados.domain.model.Unidade;
 import br.com.dunnastecnologia.chamados.domain.model.Usuario;
+import br.com.dunnastecnologia.chamados.infrastructure.repository.ColaboradorRepository;
 import br.com.dunnastecnologia.chamados.infrastructure.exception.BusinessRuleException;
 import br.com.dunnastecnologia.chamados.infrastructure.exception.ResourceNotFoundException;
 import br.com.dunnastecnologia.chamados.infrastructure.repository.MoradorRepository;
+import br.com.dunnastecnologia.chamados.infrastructure.repository.TipoChamadoRepository;
 import br.com.dunnastecnologia.chamados.infrastructure.repository.UnidadeRepository;
 import br.com.dunnastecnologia.chamados.infrastructure.repository.UsuarioRepository;
 import br.com.dunnastecnologia.chamados.infrastructure.service.support.AuthenticatedUserValidator;
@@ -27,21 +31,27 @@ import java.util.UUID;
 public class UsuarioService implements UsuarioUseCase {
 
     private final UsuarioRepository usuarioRepository;
+    private final ColaboradorRepository colaboradorRepository;
     private final MoradorRepository moradorRepository;
     private final UnidadeRepository unidadeRepository;
+    private final TipoChamadoRepository tipoChamadoRepository;
     private final AuthenticatedUserValidator authenticatedUserValidator;
     private final PasswordEncoder passwordEncoder;
 
     public UsuarioService(
             UsuarioRepository usuarioRepository,
+            ColaboradorRepository colaboradorRepository,
             MoradorRepository moradorRepository,
             UnidadeRepository unidadeRepository,
+            TipoChamadoRepository tipoChamadoRepository,
             AuthenticatedUserValidator authenticatedUserValidator,
             PasswordEncoder passwordEncoder
     ) {
         this.usuarioRepository = usuarioRepository;
+        this.colaboradorRepository = colaboradorRepository;
         this.moradorRepository = moradorRepository;
         this.unidadeRepository = unidadeRepository;
+        this.tipoChamadoRepository = tipoChamadoRepository;
         this.authenticatedUserValidator = authenticatedUserValidator;
         this.passwordEncoder = passwordEncoder;
     }
@@ -125,6 +135,50 @@ public class UsuarioService implements UsuarioUseCase {
 
         morador.getUnidades().removeIf(unidade -> unidade.getId().equals(unidadeId));
         moradorRepository.save(morador);
+    }
+
+    @Override
+    @Transactional
+    public void vincularColaboradorTipoChamado(AuthenticatedUser admin, UUID colaboradorId, UUID tipoChamadoId) {
+        authenticatedUserValidator.assertAdministrador(admin);
+        Colaborador colaborador = colaboradorRepository.findByIdAndAtivoTrue(colaboradorId)
+                .orElseThrow(() -> new ResourceNotFoundException("Colaborador nao encontrado"));
+        TipoChamado tipoChamado = tipoChamadoRepository.findById(tipoChamadoId)
+                .orElseThrow(() -> new ResourceNotFoundException("Tipo de chamado nao encontrado"));
+
+        colaborador.getTiposChamadoResponsaveis().add(tipoChamado);
+        colaboradorRepository.save(colaborador);
+    }
+
+    @Override
+    @Transactional
+    public void desvincularColaboradorTipoChamado(AuthenticatedUser admin, UUID colaboradorId, UUID tipoChamadoId) {
+        authenticatedUserValidator.assertAdministrador(admin);
+        Colaborador colaborador = colaboradorRepository.findByIdAndAtivoTrue(colaboradorId)
+                .orElseThrow(() -> new ResourceNotFoundException("Colaborador nao encontrado"));
+
+        colaborador.getTiposChamadoResponsaveis().removeIf(tipoChamado -> tipoChamado.getId().equals(tipoChamadoId));
+        colaboradorRepository.save(colaborador);
+    }
+
+    @Override
+    public PageResult<TipoChamado> listarTiposChamadoDoColaborador(UUID colaboradorId, PageRequest pageRequest) {
+        return PageResultMapper.fromPage(colaboradorRepository.findTiposChamadoByColaboradorId(colaboradorId, pageRequest));
+    }
+
+    @Override
+    public PageResult<Colaborador> listarColaboradores(PageRequest pageRequest) {
+        return PageResultMapper.fromPage(colaboradorRepository.findAllActive(pageRequest));
+    }
+
+    @Override
+    public PageResult<Colaborador> listarColaboradoresPorPrefixoEmail(String prefixoEmail, PageRequest pageRequest) {
+        if (prefixoEmail == null || prefixoEmail.isBlank()) {
+            return listarColaboradores(pageRequest);
+        }
+        return PageResultMapper.fromPage(
+                colaboradorRepository.findByEmailStartingWithIgnoreCase(prefixoEmail.trim(), pageRequest)
+        );
     }
 
     private void validateUsuario(Usuario usuario) {

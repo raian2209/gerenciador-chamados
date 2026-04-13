@@ -6,6 +6,8 @@ import br.com.dunnastecnologia.chamados.application.pagination.PageResult;
 import br.com.dunnastecnologia.chamados.domain.model.Chamado;
 import br.com.dunnastecnologia.chamados.domain.model.Comentario;
 import br.com.dunnastecnologia.chamados.domain.model.StatusChamado;
+import br.com.dunnastecnologia.chamados.domain.model.TipoChamado;
+import br.com.dunnastecnologia.chamados.infrastructure.repository.ColaboradorRepository;
 import br.com.dunnastecnologia.chamados.infrastructure.repository.StatusChamadoRepository;
 import br.com.dunnastecnologia.chamados.infrastructure.service.support.AuthenticatedUserValidator;
 import br.com.dunnastecnologia.chamados.infrastructure.service.support.PageResultMapper;
@@ -20,17 +22,20 @@ import java.util.UUID;
 public class ColaboradorService implements ColaboradorUseCases {
 
     private final StatusChamadoRepository statusChamadoRepository;
+    private final ColaboradorRepository colaboradorRepository;
     private final ChamadoService chamadoService;
     private final ComentarioService comentarioService;
     private final AuthenticatedUserValidator authenticatedUserValidator;
 
     public ColaboradorService(
             StatusChamadoRepository statusChamadoRepository,
+            ColaboradorRepository colaboradorRepository,
             ChamadoService chamadoService,
             ComentarioService comentarioService,
             AuthenticatedUserValidator authenticatedUserValidator
     ) {
         this.statusChamadoRepository = statusChamadoRepository;
+        this.colaboradorRepository = colaboradorRepository;
         this.chamadoService = chamadoService;
         this.comentarioService = comentarioService;
         this.authenticatedUserValidator = authenticatedUserValidator;
@@ -40,6 +45,12 @@ public class ColaboradorService implements ColaboradorUseCases {
     public PageResult<StatusChamado> listarStatusDisponiveis(AuthenticatedUser colaborador, PageRequest pageRequest) {
         authenticatedUserValidator.assertColaborador(colaborador);
         return PageResultMapper.fromPage(statusChamadoRepository.findAll(pageRequest));
+    }
+
+    @Override
+    public PageResult<TipoChamado> listarTiposChamadoDisponiveis(AuthenticatedUser colaborador, PageRequest pageRequest) {
+        authenticatedUserValidator.assertColaborador(colaborador);
+        return PageResultMapper.fromPage(colaboradorRepository.findTiposChamadoByColaboradorId(colaborador.id(), pageRequest));
     }
 
     @Override

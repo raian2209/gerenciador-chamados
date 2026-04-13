@@ -5,6 +5,7 @@ import br.com.dunnastecnologia.chamados.application.UserCase.AdminUseCases;
 import br.com.dunnastecnologia.chamados.application.pagination.PageResult;
 import br.com.dunnastecnologia.chamados.domain.model.Bloco;
 import br.com.dunnastecnologia.chamados.domain.model.Chamado;
+import br.com.dunnastecnologia.chamados.domain.model.Colaborador;
 import br.com.dunnastecnologia.chamados.domain.model.Comentario;
 import br.com.dunnastecnologia.chamados.domain.model.Morador;
 import br.com.dunnastecnologia.chamados.domain.model.StatusChamado;
@@ -150,6 +151,16 @@ public class AdminService implements AdminUseCases {
     }
 
     @Override
+    public PageResult<Colaborador> listarColaboradores(PageRequest pageRequest) {
+        return usuarioService.listarColaboradores(pageRequest);
+    }
+
+    @Override
+    public PageResult<Colaborador> listarColaboradoresPorPrefixoEmail(String prefixoEmail, PageRequest pageRequest) {
+        return usuarioService.listarColaboradoresPorPrefixoEmail(prefixoEmail, pageRequest);
+    }
+
+    @Override
     public Usuario buscarUsuarioPorId(UUID usuarioId) {
         return usuarioService.buscarUsuarioPorId(usuarioId);
     }
@@ -170,6 +181,23 @@ public class AdminService implements AdminUseCases {
     @Transactional
     public void desvincularMoradorUnidade(AuthenticatedUser admin, UUID moradorId, UUID unidadeId) {
         usuarioService.desvincularMoradorUnidade(admin, moradorId, unidadeId);
+    }
+
+    @Override
+    @Transactional
+    public void vincularColaboradorTipoChamado(AuthenticatedUser admin, UUID colaboradorId, UUID tipoChamadoId) {
+        usuarioService.vincularColaboradorTipoChamado(admin, colaboradorId, tipoChamadoId);
+    }
+
+    @Override
+    @Transactional
+    public void desvincularColaboradorTipoChamado(AuthenticatedUser admin, UUID colaboradorId, UUID tipoChamadoId) {
+        usuarioService.desvincularColaboradorTipoChamado(admin, colaboradorId, tipoChamadoId);
+    }
+
+    @Override
+    public PageResult<TipoChamado> listarTiposChamadoDoColaborador(UUID colaboradorId, PageRequest pageRequest) {
+        return usuarioService.listarTiposChamadoDoColaborador(colaboradorId, pageRequest);
     }
 
     @Override
