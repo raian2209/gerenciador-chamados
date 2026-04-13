@@ -27,19 +27,19 @@ public class AuthenticatedUserValidator {
     }
 
     public void assertAdministrador(AuthenticatedUser user) {
-        if (!isAdministrador(user) || !administradorRepository.existsById(user.id())) {
+        if (!isAdministrador(user) || !administradorRepository.existsByIdAndAtivoTrue(user.id())) {
             throw new UnauthorizedOperationException("Usuario autenticado nao possui perfil de administrador");
         }
     }
 
     public void assertColaborador(AuthenticatedUser user) {
-        if (!isColaborador(user) || !colaboradorRepository.existsById(user.id())) {
+        if (!isColaborador(user) || !colaboradorRepository.existsByIdAndAtivoTrue(user.id())) {
             throw new UnauthorizedOperationException("Usuario autenticado nao possui perfil de colaborador");
         }
     }
 
     public void assertMorador(AuthenticatedUser user) {
-        if (!isMorador(user) || !moradorRepository.existsById(user.id())) {
+        if (!isMorador(user) || !moradorRepository.existsByIdAndAtivoTrue(user.id())) {
             throw new UnauthorizedOperationException("Usuario autenticado nao possui perfil de morador");
         }
     }

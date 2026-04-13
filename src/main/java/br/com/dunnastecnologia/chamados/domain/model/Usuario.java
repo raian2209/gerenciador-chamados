@@ -29,5 +29,7 @@ public abstract class Usuario {
 
     private String senha;
 
+    private Boolean ativo = Boolean.TRUE;
+
     public abstract String getRole();
 }

@@ -123,7 +123,7 @@ public class AdminService implements AdminUseCases {
 
     @Override
     public PageResult<Morador> listarMoradores(PageRequest pageRequest) {
-        return PageResultMapper.fromPage(moradorRepository.findAll(pageRequest));
+        return PageResultMapper.fromPage(moradorRepository.findAllActive(pageRequest));
     }
 
     @Override

@@ -44,7 +44,7 @@ public class ComentarioService implements ComentarioUseCase {
             throw new BusinessRuleException("Mensagem do comentario e obrigatoria");
         }
 
-        Usuario autor = usuarioRepository.findById(usuario.id())
+        Usuario autor = usuarioRepository.findByIdAndAtivoTrue(usuario.id())
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario autor nao encontrado"));
         Chamado chamado = chamadoAccessSupport.findAccessibleChamado(usuario, chamadoId);
 

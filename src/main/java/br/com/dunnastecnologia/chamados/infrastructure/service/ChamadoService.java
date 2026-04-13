@@ -62,7 +62,7 @@ public class ChamadoService implements ChamadoUseCase {
             throw new BusinessRuleException("Morador nao pode abrir chamado para esta unidade");
         }
 
-        Morador moradorEntity = moradorRepository.findById(morador.id())
+        Morador moradorEntity = moradorRepository.findByIdAndAtivoTrue(morador.id())
                 .orElseThrow(() -> new ResourceNotFoundException("Morador nao encontrado"));
         Unidade unidade = unidadeRepository.findById(unidadeId)
                 .orElseThrow(() -> new ResourceNotFoundException("Unidade nao encontrada"));

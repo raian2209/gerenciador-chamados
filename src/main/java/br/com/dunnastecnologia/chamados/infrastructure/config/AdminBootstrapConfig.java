@@ -30,7 +30,14 @@ public class AdminBootstrapConfig {
                 return;
             }
 
-            if (usuarioRepository.existsByEmailIgnoreCase(adminEmail)) {
+            var usuarioExistente = usuarioRepository.findByEmail(adminEmail).orElse(null);
+            if (usuarioExistente != null) {
+                if (usuarioExistente instanceof Administrador administrador) {
+                    administrador.setNome(adminNome);
+                    administrador.setSenha(passwordEncoder.encode(adminSenha));
+                    administrador.setAtivo(Boolean.TRUE);
+                    usuarioRepository.save(administrador);
+                }
                 return;
             }
 

@@ -18,13 +18,22 @@ public interface MoradorRepository extends JpaRepository<Morador, UUID> {
             select m
             from Morador m
             where m.unidades is empty
+              and m.ativo = true
             """)
     Page<Morador> findByUnidadesIsEmpty(Pageable pageable);
 
     @Query("""
             select m
             from Morador m
+            where m.ativo = true
+            """)
+    Page<Morador> findAllActive(Pageable pageable);
+
+    @Query("""
+            select m
+            from Morador m
             where lower(m.email) like lower(concat(:prefixoEmail, '%'))
+              and m.ativo = true
             """)
     Page<Morador> findByEmailStartingWithIgnoreCase(
             @Param("prefixoEmail") String prefixoEmail,
@@ -36,6 +45,7 @@ public interface MoradorRepository extends JpaRepository<Morador, UUID> {
             from Morador m
             where m.unidades is empty
               and lower(m.email) like lower(concat(:prefixoEmail, '%'))
+              and m.ativo = true
             """)
     Page<Morador> findByUnidadesIsEmptyAndEmailStartingWithIgnoreCase(
             @Param("prefixoEmail") String prefixoEmail,
@@ -49,16 +59,25 @@ public interface MoradorRepository extends JpaRepository<Morador, UUID> {
             select m
             from Morador m
             where lower(m.email) = lower(:email)
+              and m.ativo = true
             """)
     Optional<Morador> findByEmail(@Param("email") String email);
+
+    Optional<Morador> findByIdAndAtivoTrue(UUID id);
+
+    boolean existsByIdAndAtivoTrue(UUID id);
 
     /**
      * Verifica no banco se o morador esta vinculado a unidade informada.
      */
-    @Query(value = """
-            select fn_morador_possui_unidade(:moradorId, :unidadeId)
-            """,
-            nativeQuery = true)
+    @Query("""
+            select count(m) > 0
+            from Morador m
+            join m.unidades u
+            where m.id = :moradorId
+              and m.ativo = true
+              and u.id = :unidadeId
+            """)
     boolean existsByIdAndUnidadeId(
             @Param("moradorId") UUID moradorId,
             @Param("unidadeId") UUID unidadeId

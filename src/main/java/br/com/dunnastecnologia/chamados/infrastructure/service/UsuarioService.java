@@ -85,12 +85,12 @@ public class UsuarioService implements UsuarioUseCase {
 
     @Override
     public PageResult<Usuario> listarUsuarios(PageRequest pageRequest) {
-        return PageResultMapper.fromPage(usuarioRepository.findAll(pageRequest));
+        return PageResultMapper.fromPage(usuarioRepository.findAllActive(pageRequest));
     }
 
     @Override
     public Usuario buscarUsuarioPorId(UUID usuarioId) {
-        return usuarioRepository.findById(usuarioId)
+        return usuarioRepository.findByIdAndAtivoTrue(usuarioId)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario nao encontrado"));
     }
 
@@ -99,14 +99,15 @@ public class UsuarioService implements UsuarioUseCase {
     public void removerUsuario(AuthenticatedUser admin, UUID usuarioId) {
         authenticatedUserValidator.assertAdministrador(admin);
         Usuario usuario = buscarUsuarioPorId(usuarioId);
-        usuarioRepository.delete(usuario);
+        usuario.setAtivo(Boolean.FALSE);
+        usuarioRepository.save(usuario);
     }
 
     @Override
     @Transactional
     public void vincularMoradorUnidade(AuthenticatedUser admin, UUID moradorId, UUID unidadeId) {
         authenticatedUserValidator.assertAdministrador(admin);
-        Morador morador = moradorRepository.findById(moradorId)
+        Morador morador = moradorRepository.findByIdAndAtivoTrue(moradorId)
                 .orElseThrow(() -> new ResourceNotFoundException("Morador nao encontrado"));
         Unidade unidade = unidadeRepository.findById(unidadeId)
                 .orElseThrow(() -> new ResourceNotFoundException("Unidade nao encontrada"));
@@ -119,7 +120,7 @@ public class UsuarioService implements UsuarioUseCase {
     @Transactional
     public void desvincularMoradorUnidade(AuthenticatedUser admin, UUID moradorId, UUID unidadeId) {
         authenticatedUserValidator.assertAdministrador(admin);
-        Morador morador = moradorRepository.findById(moradorId)
+        Morador morador = moradorRepository.findByIdAndAtivoTrue(moradorId)
                 .orElseThrow(() -> new ResourceNotFoundException("Morador nao encontrado"));
 
         morador.getUnidades().removeIf(unidade -> unidade.getId().equals(unidadeId));

@@ -19,6 +19,9 @@ public interface ColaboradorRepository extends JpaRepository<Colaborador, UUID> 
             select c
             from Colaborador c
             where lower(c.email) = lower(:email)
+              and c.ativo = true
             """)
     Optional<Colaborador> findByEmail(@Param("email") String email);
+
+    boolean existsByIdAndAtivoTrue(UUID id);
 }

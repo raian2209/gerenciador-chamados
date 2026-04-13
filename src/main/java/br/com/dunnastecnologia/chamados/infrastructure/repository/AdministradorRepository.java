@@ -19,6 +19,9 @@ public interface AdministradorRepository extends JpaRepository<Administrador, UU
             select a
             from Administrador a
             where lower(a.email) = lower(:email)
+              and a.ativo = true
             """)
     Optional<Administrador> findByEmail(@Param("email") String email);
+
+    boolean existsByIdAndAtivoTrue(UUID id);
 }
