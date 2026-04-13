@@ -152,6 +152,61 @@
                         </c:if>
                     </article>
                 </c:if>
+
+                <c:if test="${usuario.role eq 'ROLE_COLABORADOR'}">
+                    <article class="card">
+                        <div class="section-header">
+                            <div>
+                                <p class="eyebrow">Escopo</p>
+                                <h2>Tipos de chamado do colaborador</h2>
+                            </div>
+                        </div>
+
+                        <c:choose>
+                            <c:when test="${empty tiposChamadoColaborador}">
+                                <div class="empty-state compact">
+                                    <p>Nenhum tipo de chamado vinculado.</p>
+                                </div>
+                            </c:when>
+                            <c:otherwise>
+                                <div class="stack-list">
+                                    <c:forEach items="${tiposChamadoColaborador}" var="tipoChamado">
+                                        <div class="list-row">
+                                            <div>
+                                                <strong>${tipoChamado.titulo}</strong>
+                                                <span>Prazo: ${tipoChamado.prazoHoras}h</span>
+                                            </div>
+                                            <form method="post" action="${ctx}/admin/colaboradores/${usuario.id}/tipos-chamado/${tipoChamado.id}/remover" data-confirm="Desvincular este tipo de chamado do colaborador?" class="inline-form">
+                                                <%@ include file="/WEB-INF/jsp/fragments/csrf.jspf" %>
+                                                <button type="submit" class="btn btn-danger">Desvincular</button>
+                                            </form>
+                                        </div>
+                                    </c:forEach>
+                                </div>
+                            </c:otherwise>
+                        </c:choose>
+
+                        <div class="divider"></div>
+
+                        <form method="post" action="${ctx}/admin/colaboradores/${usuario.id}/tipos-chamado" class="stack-form compact-form">
+                            <%@ include file="/WEB-INF/jsp/fragments/csrf.jspf" %>
+                            <label class="field">
+                                <span>Selecionar tipo de chamado</span>
+                                <select name="tipoChamadoId" required>
+                                    <option value="">Escolha um tipo</option>
+                                    <c:forEach items="${tiposChamadoDisponiveis}" var="tipoChamado">
+                                        <c:set var="tipoChamadoJaVinculado" value="${tiposChamadoResponsaveisIds.contains(tipoChamado.id)}" />
+                                        <option value="${tipoChamado.id}" ${tipoChamadoJaVinculado ? 'disabled' : ''}>
+                                            ${tipoChamado.titulo} - ${tipoChamado.prazoHoras}h
+                                            ${tipoChamadoJaVinculado ? ' (ja vinculado)' : ''}
+                                        </option>
+                                    </c:forEach>
+                                </select>
+                            </label>
+                            <button type="submit" class="btn btn-primary">Vincular tipo de chamado</button>
+                        </form>
+                    </article>
+                </c:if>
             </section>
         </main>
     </div>
