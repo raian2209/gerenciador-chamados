@@ -4,6 +4,7 @@ import br.com.dunnastecnologia.chamados.application.Security.AuthenticatedUser;
 import br.com.dunnastecnologia.chamados.application.pagination.PageResult;
 import br.com.dunnastecnologia.chamados.domain.model.Bloco;
 import br.com.dunnastecnologia.chamados.domain.model.Chamado;
+import br.com.dunnastecnologia.chamados.domain.model.Colaborador;
 import br.com.dunnastecnologia.chamados.domain.model.Comentario;
 import br.com.dunnastecnologia.chamados.domain.model.Morador;
 import br.com.dunnastecnologia.chamados.domain.model.StatusChamado;
@@ -98,6 +99,18 @@ public interface AdminUseCases {
     PageResult<Morador> listarMoradoresSemUnidadePorPrefixoEmail(String prefixoEmail, PageRequest pageRequest);
 
     /**
+     * Existe para fornecer ao administrador uma lista direta de colaboradores
+     * durante o processo de definicao de escopo por tipo de chamado.
+     */
+    PageResult<Colaborador> listarColaboradores(PageRequest pageRequest);
+
+    /**
+     * Existe para localizar colaboradores pelo prefixo do e-mail
+     * durante o processo de definicao de escopo por tipo de chamado.
+     */
+    PageResult<Colaborador> listarColaboradoresPorPrefixoEmail(String prefixoEmail, PageRequest pageRequest);
+
+    /**
      *  para detalhar um usuario especifico antes de manutencao, auditoria ou vinculacao.
      */
     Usuario buscarUsuarioPorId(UUID usuarioId);
@@ -127,6 +140,32 @@ public interface AdminUseCases {
             AuthenticatedUser admin,
             UUID moradorId,
             UUID unidadeId
+    );
+
+    /**
+     * Existe para definir quais tipos de chamado estao sob responsabilidade de um colaborador.
+     */
+    void vincularColaboradorTipoChamado(
+            AuthenticatedUser admin,
+            UUID colaboradorId,
+            UUID tipoChamadoId
+    );
+
+    /**
+     * Existe para retirar de um colaborador a responsabilidade sobre um tipo de chamado.
+     */
+    void desvincularColaboradorTipoChamado(
+            AuthenticatedUser admin,
+            UUID colaboradorId,
+            UUID tipoChamadoId
+    );
+
+    /**
+     * Existe para listar os tipos de chamado atualmente atribuidos a um colaborador.
+     */
+    PageResult<TipoChamado> listarTiposChamadoDoColaborador(
+            UUID colaboradorId,
+            PageRequest pageRequest
     );
 
     /**

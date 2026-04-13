@@ -14,6 +14,7 @@ import br.com.dunnastecnologia.chamados.infrastructure.controller.web.form.Comen
 import br.com.dunnastecnologia.chamados.infrastructure.controller.web.form.StatusChamadoForm;
 import br.com.dunnastecnologia.chamados.infrastructure.controller.web.form.TipoChamadoForm;
 import br.com.dunnastecnologia.chamados.infrastructure.controller.web.form.UsuarioForm;
+import br.com.dunnastecnologia.chamados.infrastructure.controller.web.form.VincularColaboradorTipoChamadoForm;
 import br.com.dunnastecnologia.chamados.infrastructure.controller.web.form.VincularMoradorUnidadeForm;
 import br.com.dunnastecnologia.chamados.infrastructure.exception.BusinessRuleException;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -95,6 +96,11 @@ public class AdminWebController {
         return new VincularMoradorUnidadeForm();
     }
 
+    @ModelAttribute("vincularColaboradorTipoChamadoForm")
+    public VincularColaboradorTipoChamadoForm vincularColaboradorTipoChamadoForm() {
+        return new VincularColaboradorTipoChamadoForm();
+    }
+
     @ModelAttribute("tiposUsuario")
     public Map<String, String> tiposUsuario() {
         return Map.of(
@@ -160,6 +166,32 @@ public class AdminWebController {
         }
 
         return "admin/vinculos-morador/lista";
+    }
+
+    @GetMapping({"/escopo-colaborador", "/escopo-colaborador/"})
+    @Transactional(readOnly = true)
+    public String gerenciarEscopoColaborador(
+            @RequestParam(required = false) UUID colaboradorId,
+            @RequestParam(required = false) String colaboradorEmail,
+            Model model
+    ) {
+        var colaboradores = adminUseCases.listarColaboradoresPorPrefixoEmail(
+                colaboradorEmail,
+                support.pageRequest(0, 100)
+        );
+        var tiposChamado = adminUseCases.listarTiposChamado(support.pageRequest(0, 100));
+
+        model.addAttribute("pageTitle", "Designar Colaborador");
+        model.addAttribute("colaboradoresDisponiveis", support.mapContent(colaboradores.content(), support::toUsuarioMap));
+        model.addAttribute("tiposChamadoDisponiveis", support.mapContent(tiposChamado.content(), support::toTipoChamadoMap));
+        model.addAttribute("colaboradorSelecionadoId", colaboradorId);
+        model.addAttribute("filtroColaboradorEmail", colaboradorEmail);
+
+        if (colaboradorId != null) {
+            carregarEscopoColaborador(model, colaboradorId);
+        }
+
+        return "admin/escopo-colaborador/lista";
     }
 
     @GetMapping({"/blocos", "/blocos/"})
@@ -283,6 +315,18 @@ public class AdminWebController {
             }
         }
 
+        if (usuario instanceof Colaborador) {
+            var tiposChamado = adminUseCases.listarTiposChamado(support.pageRequest(0, 100));
+            var tiposResponsaveis = adminUseCases.listarTiposChamadoDoColaborador(usuarioId, support.pageRequest(0, 100));
+            Set<UUID> tiposResponsaveisIds = tiposResponsaveis.content().stream()
+                    .map(tipoChamado -> tipoChamado.getId())
+                    .collect(Collectors.toSet());
+
+            model.addAttribute("tiposChamadoDisponiveis", support.mapContent(tiposChamado.content(), support::toTipoChamadoMap));
+            model.addAttribute("tiposChamadoColaborador", support.mapContent(tiposResponsaveis.content(), support::toTipoChamadoMap));
+            model.addAttribute("tiposChamadoResponsaveisIds", tiposResponsaveisIds);
+        }
+
         return "admin/usuarios/detalhe";
     }
 
@@ -370,6 +414,50 @@ public class AdminWebController {
             return redirectVinculosMorador(moradorId, blocoId);
         }
         return redirectUsuarioMorador(moradorId, blocoId);
+    }
+
+    @PostMapping("/colaboradores/{colaboradorId}/tipos-chamado")
+    public String vincularColaboradorTipoChamado(
+            Authentication authentication,
+            @PathVariable UUID colaboradorId,
+            @ModelAttribute VincularColaboradorTipoChamadoForm vincularColaboradorTipoChamadoForm,
+            @RequestParam(required = false, defaultValue = "false") boolean dashboard,
+            RedirectAttributes redirectAttributes
+    ) {
+        if (vincularColaboradorTipoChamadoForm.getTipoChamadoId() == null) {
+            throw new BusinessRuleException("Selecione um tipo de chamado para vincular ao colaborador.");
+        }
+
+        adminUseCases.vincularColaboradorTipoChamado(
+                support.authenticatedUser(authentication),
+                colaboradorId,
+                vincularColaboradorTipoChamadoForm.getTipoChamadoId()
+        );
+        redirectAttributes.addFlashAttribute("successMessage", "Tipo de chamado vinculado ao colaborador.");
+        if (dashboard) {
+            return redirectEscopoColaborador(colaboradorId);
+        }
+        return "redirect:/admin/usuarios/" + colaboradorId;
+    }
+
+    @PostMapping("/colaboradores/{colaboradorId}/tipos-chamado/{tipoChamadoId}/remover")
+    public String desvincularColaboradorTipoChamado(
+            Authentication authentication,
+            @PathVariable UUID colaboradorId,
+            @PathVariable UUID tipoChamadoId,
+            @RequestParam(required = false, defaultValue = "false") boolean dashboard,
+            RedirectAttributes redirectAttributes
+    ) {
+        adminUseCases.desvincularColaboradorTipoChamado(
+                support.authenticatedUser(authentication),
+                colaboradorId,
+                tipoChamadoId
+        );
+        redirectAttributes.addFlashAttribute("successMessage", "Tipo de chamado desvinculado do colaborador.");
+        if (dashboard) {
+            return redirectEscopoColaborador(colaboradorId);
+        }
+        return "redirect:/admin/usuarios/" + colaboradorId;
     }
 
     @GetMapping({"/tipos-chamado", "/tipos-chamado/"})
@@ -684,6 +772,22 @@ public class AdminWebController {
         }
     }
 
+    private void carregarEscopoColaborador(Model model, UUID colaboradorId) {
+        Usuario usuario = adminUseCases.buscarUsuarioPorId(colaboradorId);
+        if (!(usuario instanceof Colaborador)) {
+            throw new BusinessRuleException("O usuario selecionado nao e um colaborador.");
+        }
+
+        var tiposResponsaveis = adminUseCases.listarTiposChamadoDoColaborador(colaboradorId, support.pageRequest(0, 100));
+        Set<UUID> tiposResponsaveisIds = tiposResponsaveis.content().stream()
+                .map(tipoChamado -> tipoChamado.getId())
+                .collect(Collectors.toSet());
+
+        model.addAttribute("colaboradorSelecionado", support.toUsuarioMap(usuario));
+        model.addAttribute("tiposChamadoColaborador", support.mapContent(tiposResponsaveis.content(), support::toTipoChamadoMap));
+        model.addAttribute("tiposChamadoResponsaveisIds", tiposResponsaveisIds);
+    }
+
     private String redirectUsuarioMorador(UUID moradorId, UUID blocoId) {
         if (blocoId == null) {
             return "redirect:/admin/usuarios/" + moradorId;
@@ -696,6 +800,10 @@ public class AdminWebController {
             return "redirect:/admin/vinculos-morador?moradorId=" + moradorId;
         }
         return "redirect:/admin/vinculos-morador?moradorId=" + moradorId + "&blocoId=" + blocoId;
+    }
+
+    private String redirectEscopoColaborador(UUID colaboradorId) {
+        return "redirect:/admin/escopo-colaborador?colaboradorId=" + colaboradorId;
     }
 
     private int defaultInteger(Integer value) {

@@ -5,6 +5,7 @@ import br.com.dunnastecnologia.chamados.application.pagination.PageResult;
 import br.com.dunnastecnologia.chamados.domain.model.Chamado;
 import br.com.dunnastecnologia.chamados.domain.model.Comentario;
 import br.com.dunnastecnologia.chamados.domain.model.StatusChamado;
+import br.com.dunnastecnologia.chamados.domain.model.TipoChamado;
 import org.springframework.data.domain.PageRequest;
 
 import java.util.UUID;
@@ -15,6 +16,14 @@ public interface ColaboradorUseCases {
      * permitindo atualizacao consistente dos chamados sob atendimento.
      */
     PageResult<StatusChamado> listarStatusDisponiveis(
+            AuthenticatedUser colaborador,
+            PageRequest pageRequest
+    );
+
+    /**
+     * Existe para limitar os filtros e o escopo do colaborador aos tipos de chamado sob sua responsabilidade.
+     */
+    PageResult<TipoChamado> listarTiposChamadoDisponiveis(
             AuthenticatedUser colaborador,
             PageRequest pageRequest
     );

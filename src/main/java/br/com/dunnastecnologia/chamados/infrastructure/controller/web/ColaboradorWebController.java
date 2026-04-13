@@ -3,7 +3,6 @@ package br.com.dunnastecnologia.chamados.infrastructure.controller.web;
 import br.com.dunnastecnologia.chamados.application.UserCase.ColaboradorUseCases;
 import br.com.dunnastecnologia.chamados.application.UserCase.AnexoChamadoUseCases;
 import br.com.dunnastecnologia.chamados.application.UserCase.ComentarioUseCase;
-import br.com.dunnastecnologia.chamados.application.UserCase.TipoChamadoUseCase;
 import br.com.dunnastecnologia.chamados.infrastructure.controller.web.form.AtualizarStatusForm;
 import br.com.dunnastecnologia.chamados.infrastructure.controller.web.form.ComentarioForm;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -31,20 +30,17 @@ import java.util.UUID;
 public class ColaboradorWebController {
 
     private final ColaboradorUseCases colaboradorUseCases;
-    private final TipoChamadoUseCase tipoChamadoUseCase;
     private final AnexoChamadoUseCases anexoChamadoUseCases;
     private final ComentarioUseCase comentarioUseCase;
     private final WebControllerSupport support;
 
     public ColaboradorWebController(
             ColaboradorUseCases colaboradorUseCases,
-            TipoChamadoUseCase tipoChamadoUseCase,
             AnexoChamadoUseCases anexoChamadoUseCases,
             ComentarioUseCase comentarioUseCase,
             WebControllerSupport support
     ) {
         this.colaboradorUseCases = colaboradorUseCases;
-        this.tipoChamadoUseCase = tipoChamadoUseCase;
         this.anexoChamadoUseCases = anexoChamadoUseCases;
         this.comentarioUseCase = comentarioUseCase;
         this.support = support;
@@ -95,7 +91,7 @@ public class ColaboradorWebController {
                 support.pageRequest(page, size)
         );
         var status = colaboradorUseCases.listarStatusDisponiveis(currentUser, support.pageRequest(0, 100));
-        var tipos = tipoChamadoUseCase.listarTiposChamado(support.pageRequest(0, 100));
+        var tipos = colaboradorUseCases.listarTiposChamadoDisponiveis(currentUser, support.pageRequest(0, 100));
 
         model.addAttribute("pageTitle", "Chamados em Atendimento");
         model.addAttribute("chamados", support.mapContent(chamados.content(), support::toChamadoMap));
