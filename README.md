@@ -471,6 +471,357 @@ O modelo cobre bem a base do problema:
 - Abertura de chamados com tipo, descrição, anexos e status.
 - Comentários com autoria e histórico.
 
+## Migrations do Banco
+
+As migrations do projeto ficam em [`src/main/resources/db/migration`](</home/raimundo/ProcessoCeletivo/Dunnas/gerenciador-chamados/src/main/resources/db/migration>).
+
+O projeto usa Flyway para versionar a estrutura do banco e a evolução das funções SQL usadas pela aplicação.
+
+### Como a pasta está organizada
+
+- arquivos no formato `V{numero}__descricao.sql`
+- cada arquivo representa uma etapa versionada da evolução do banco
+- a execução acontece em ordem crescente de versão
+
+### Responsabilidade das migrations atuais
+
+- `V1`: estrutura inicial das tabelas e índices principais
+- `V2`: regras de autorização do morador
+- `V3`: regras administrativas e geração automática de unidades
+- `V4`: regras operacionais do colaborador
+- `V5`: funções de apoio usadas pelos repositories
+- `V6`: consolidação das regras de visibilidade dos chamados
+- `V7`: suporte ao status inicial padrão
+- `V8`: estrutura de anexos dos chamados
+- `V9`: filtro administrativo por morador
+- `V10`: filtro administrativo por prefixo do nome do morador
+- `V11`: filtros do colaborador por tipo e unidade
+- `V12`: suporte a soft delete de usuários
+- `V13`: escopo do colaborador por tipos de chamado
+
+### Convenções adotadas
+
+- as migrations foram comentadas internamente para separar blocos por responsabilidade
+- os nomes versionados existentes foram preservados para não quebrar o histórico do Flyway
+- a semântica foi melhorada com cabeçalhos e seções dentro dos próprios arquivos
+
+### Cuidados ao evoluir migrations
+
+- nunca altere a ordem das versões já existentes
+- para novas mudanças, crie um novo arquivo `V{proxima_versao}__descricao.sql`
+- prefira descrições curtas e objetivas no nome do arquivo
+- agrupe o conteúdo por blocos comentados quando a migration tiver mais de uma responsabilidade técnica
+
+### Atenção em ambientes já executados
+
+Se uma migration antiga já tiver sido aplicada em algum banco, mudar o conteúdo dela pode gerar divergência de checksum no Flyway.
+
+Nesse cenário:
+
+- evite reescrever migrations já executadas em produção
+- prefira criar uma nova migration corretiva
+- se a alteração em arquivo antigo já tiver acontecido, pode ser necessário executar `flyway repair` antes de subir a aplicação
+
+## Endpoints Web
+
+Esta aplicação expõe sua interface principal pela pasta `src/main/java/br/com/dunnastecnologia/chamados/infrastructure/controller/web`.
+Esses endpoints retornam páginas JSP e usam autenticação com sessão via Spring Security.
+
+### Como acessar a interface
+
+- A rota `GET /` funciona como ponto de entrada. Se o usuário não estiver autenticado, redireciona para `/login`. Se estiver autenticado, redireciona para o painel correspondente ao perfil.
+- A tela de login está em `GET /login`.
+- O envio do formulário de login acontece em `POST /login`, usando os campos `username` para o email e `password` para a senha.
+- Após autenticar, o sistema redireciona automaticamente para:
+  - `/admin` para administradores.
+  - `/colaborador` para colaboradores.
+  - `/morador` para moradores.
+
+### Paginação web
+
+As listagens da interface usam os parâmetros de query string `page` e `size`.
+
+- `page` é baseado em zero.
+  - `page=0` representa a primeira página.
+  - `page=1` representa a segunda página.
+- `size` define quantos registros serão exibidos por página.
+- O tamanho padrão é `10` itens por página na maioria das listagens.
+- O tamanho máximo aceito é `100`.
+- Se `page` vier negativo ou `size` vier zerado ou negativo, o sistema volta para os valores padrão.
+
+Exemplos:
+
+- `/admin/blocos?page=0&size=10`
+- `/admin/chamados?page=1&size=20`
+- `/colaborador/chamados?page=0&size=15`
+- `/morador/chamados?page=2&size=5`
+
+Algumas telas usam paginação interna fixa apenas para montar cards e resumos do dashboard, sem expor esses parâmetros na URL.
+
+### Endpoints públicos
+
+#### `GET /`
+
+- Acesso inicial da aplicação.
+- Redireciona para `/login` quando não existe sessão autenticada.
+- Redireciona para o painel do perfil quando o usuário já está autenticado.
+
+#### `GET /login`
+
+- Exibe a página de login da aplicação.
+- Pode receber `?error=true` para falha de autenticação e `?logout=true` para logout concluído.
+
+#### `POST /login`
+
+- Processa o login via Spring Security.
+- Deve ser enviado a partir do formulário web com `username`, `password` e token CSRF.
+- Se autenticado com sucesso, o usuário é enviado para o painel do seu papel.
+
+### Endpoints do administrador
+
+Todos os endpoints abaixo exigem usuário com papel `ADMINISTRADOR`.
+
+#### `GET /admin`
+
+- Exibe o dashboard do administrador.
+- Mostra totais de blocos, usuários, tipos de chamado, status e chamados.
+- Também carrega uma lista resumida de chamados recentes.
+
+#### `GET /admin/vinculos-morador`
+
+- Exibe a tela de vínculo entre moradores e unidades.
+- Aceita filtros `moradorId`, `blocoId`, `moradorEmail`, `semUnidadeEmail`, `semUnidadePage` e `semUnidadeSize`.
+- É usado para administrar o relacionamento entre morador e unidade.
+
+#### `GET /admin/escopo-colaborador`
+
+- Exibe a tela de definição de escopo operacional do colaborador.
+- Aceita `colaboradorId` para abrir um colaborador específico e `colaboradorEmail` para filtrar por email.
+- Permite visualizar e preparar a vinculação de tipos de chamado ao colaborador.
+
+#### `GET /admin/blocos`
+
+- Lista os blocos cadastrados.
+- Usa paginação por `page` e `size`.
+- Serve para consulta da estrutura física do condomínio.
+
+#### `POST /admin/blocos`
+
+- Cadastra um novo bloco.
+- Recebe os dados do formulário de bloco.
+- Ao cadastrar, a aplicação executa a criação da estrutura do bloco e das unidades derivadas.
+
+#### `GET /admin/blocos/{blocoId}`
+
+- Exibe os detalhes de um bloco específico.
+- Lista as unidades do bloco com paginação por `page` e `size`.
+- É a tela usada para consultar a composição de apartamentos gerada para o bloco.
+
+#### `GET /admin/usuarios`
+
+- Lista todos os usuários do sistema.
+- Usa paginação por `page` e `size`.
+- Permite consultar administradores, colaboradores e moradores em uma única visão.
+
+#### `POST /admin/usuarios`
+
+- Cadastra um novo usuário.
+- O tipo do usuário define se ele será administrador, colaborador ou morador.
+
+#### `GET /admin/usuarios/{usuarioId}`
+
+- Exibe o detalhe de um usuário.
+- Para moradores, pode receber `blocoId` para mostrar as unidades do bloco e facilitar vínculo ou desvínculo.
+- Para colaboradores, mostra os tipos de chamado já vinculados.
+
+#### `POST /admin/usuarios/{usuarioId}`
+
+- Atualiza os dados cadastrais do usuário.
+- Mantém o papel original do registro.
+
+#### `POST /admin/usuarios/{usuarioId}/remover`
+
+- Executa a remoção lógica do usuário.
+- Na prática, a aplicação marca o usuário como inativo em vez de apagar fisicamente o registro.
+
+#### `POST /admin/moradores/{moradorId}/unidades/{unidadeId}/vincular`
+
+- Vincula diretamente uma unidade a um morador.
+- Pode receber `blocoId` e `dashboard=true` para voltar ao contexto de origem após a operação.
+
+#### `POST /admin/moradores/{moradorId}/unidades/vincular`
+
+- Faz o mesmo vínculo de morador com unidade, mas usando dados enviados por formulário.
+- Pode receber `dashboard=true` para retornar à tela de vínculos.
+
+#### `POST /admin/moradores/{moradorId}/unidades/{unidadeId}/desvincular`
+
+- Remove o vínculo entre morador e unidade.
+- Também aceita `blocoId` e `dashboard=true` para redirecionamento contextual.
+
+#### `POST /admin/colaboradores/{colaboradorId}/tipos-chamado`
+
+- Vincula um tipo de chamado ao escopo do colaborador.
+- Pode receber `dashboard=true` para retornar à tela de escopo.
+
+#### `POST /admin/colaboradores/{colaboradorId}/tipos-chamado/{tipoChamadoId}/remover`
+
+- Remove um tipo de chamado do escopo do colaborador.
+- Pode receber `dashboard=true` para retornar à tela de escopo.
+
+#### `GET /admin/tipos-chamado`
+
+- Lista os tipos de chamado cadastrados.
+- Usa paginação por `page` e `size`.
+- Pode receber `tipoId` para carregar um tipo específico em modo de edição.
+
+#### `POST /admin/tipos-chamado`
+
+- Cadastra um novo tipo de chamado.
+- Define título e prazo em horas para SLA.
+
+#### `POST /admin/tipos-chamado/{tipoId}`
+
+- Atualiza um tipo de chamado existente.
+- Redireciona de volta para a mesma tela com o registro em foco.
+
+#### `GET /admin/status-chamado`
+
+- Lista os status possíveis do fluxo.
+- Usa paginação por `page` e `size`.
+- Pode receber `statusId` para carregar um status em modo de edição.
+
+#### `POST /admin/status-chamado`
+
+- Cadastra um novo status de chamado.
+
+#### `POST /admin/status-chamado/{statusId}`
+
+- Atualiza o nome de um status existente.
+
+#### `POST /admin/status-chamado/{statusId}/inicial-padrao`
+
+- Define qual status será usado como padrão na abertura de novos chamados.
+
+#### `GET /admin/chamados`
+
+- Lista os chamados visíveis ao administrador.
+- Usa paginação por `page` e `size`.
+- Aceita filtros `statusId` e `moradorNome`.
+- É a tela central de acompanhamento administrativo dos atendimentos.
+
+#### `GET /admin/chamados/{chamadoId}`
+
+- Exibe os detalhes de um chamado.
+- Mostra dados do chamado, status disponíveis, comentários e anexos.
+- Comentários e anexos são carregados em lotes internos de até `100` itens.
+
+#### `POST /admin/chamados/{chamadoId}/status`
+
+- Atualiza o status do chamado.
+- Usado pelo administrador para movimentar o fluxo de atendimento.
+
+#### `POST /admin/chamados/{chamadoId}/finalizar`
+
+- Finaliza o chamado.
+- A finalização define a data de encerramento do registro.
+
+#### `POST /admin/chamados/{chamadoId}/comentarios`
+
+- Adiciona um comentário ao chamado.
+- O comentário passa a compor o histórico de interação.
+
+#### `GET /admin/chamados/{chamadoId}/anexos/{anexoId}`
+
+- Baixa um anexo do chamado.
+- Retorna o arquivo com `Content-Disposition: attachment`.
+
+### Endpoints do colaborador
+
+Todos os endpoints abaixo exigem usuário com papel `COLABORADOR`.
+
+#### `GET /colaborador`
+
+- Exibe o dashboard do colaborador.
+- Mostra chamados abertos dentro do escopo do colaborador e o total correspondente.
+
+#### `GET /colaborador/chamados`
+
+- Lista os chamados disponíveis no escopo do colaborador.
+- Usa paginação por `page` e `size`.
+- Aceita filtros `statusId`, `tipoChamadoId` e `unidade`.
+- É a principal tela operacional do colaborador.
+
+#### `GET /colaborador/chamados/{chamadoId}`
+
+- Exibe o detalhe de um chamado dentro do escopo permitido ao colaborador.
+- Mostra status possíveis, comentários e anexos.
+- Comentários e anexos são carregados em lotes internos de até `100` itens.
+
+#### `POST /colaborador/chamados/{chamadoId}/status`
+
+- Atualiza o status do chamado.
+- Permite avançar o tratamento até a conclusão.
+
+#### `POST /colaborador/chamados/{chamadoId}/finalizar`
+
+- Finaliza o chamado.
+- Após isso, o registro sai da lista operacional de chamados abertos.
+
+#### `POST /colaborador/chamados/{chamadoId}/comentarios`
+
+- Adiciona comentário ao chamado dentro do escopo do colaborador.
+
+#### `GET /colaborador/chamados/{chamadoId}/anexos/{anexoId}`
+
+- Faz download de um anexo vinculado ao chamado.
+
+### Endpoints do morador
+
+Todos os endpoints abaixo exigem usuário com papel `MORADOR`.
+
+#### `GET /morador`
+
+- Exibe o dashboard do morador.
+- Mostra um resumo das unidades vinculadas e dos chamados já abertos.
+
+#### `GET /morador/chamados`
+
+- Lista os chamados do próprio morador.
+- Usa paginação por `page` e `size`.
+- É a tela de acompanhamento pessoal dos chamados abertos e concluídos.
+
+#### `GET /morador/chamados/novo`
+
+- Exibe o formulário para abertura de chamado.
+- Carrega as unidades do morador e os tipos de chamado disponíveis.
+
+#### `POST /morador/chamados`
+
+- Abre um novo chamado.
+- Recebe a unidade, o tipo de chamado e a descrição.
+- Após criar, redireciona para a tela de detalhe do chamado aberto.
+
+#### `GET /morador/chamados/{chamadoId}`
+
+- Exibe o detalhe de um chamado do próprio morador.
+- Mostra comentários e anexos ligados ao atendimento.
+- Comentários e anexos são carregados em lotes internos de até `100` itens.
+
+#### `POST /morador/chamados/{chamadoId}/comentarios`
+
+- Adiciona um comentário ao chamado do morador.
+
+#### `POST /morador/chamados/{chamadoId}/anexos`
+
+- Envia um novo anexo para o chamado.
+- O arquivo é enviado como `multipart/form-data` no campo `arquivo`.
+
+#### `GET /morador/chamados/{chamadoId}/anexos/{anexoId}`
+
+- Baixa um anexo de um chamado ao qual o morador tem acesso.
+
+
 # Executar o Projeto
 
 ## Variáveis de ambiente
@@ -536,19 +887,19 @@ docker compose up -d --build
 Ver containers em execução:
 
 ```bash
-docker compose ps
+docker ps
 ```
 
 Ver logs da aplicação:
 
 ```bash
-docker compose logs -f app
+docker  logs -f app_condominio
 ```
 
 Ver logs do banco:
 
 ```bash
-docker compose logs -f db
+docker logs -f postgres_condominio
 ```
 
 Entrar em shell no container da aplicação:
@@ -633,54 +984,3 @@ A inicialização também garante a integridade do fluxo de trabalho do condomí
 ### Acessando a Aplicação
 
 - Interface Web (Página de Login): http://localhost:8080/
-
-## Migrations do Banco
-
-As migrations do projeto ficam em [`src/main/resources/db/migration`](</home/raimundo/ProcessoCeletivo/Dunnas/gerenciador-chamados/src/main/resources/db/migration>).
-
-O projeto usa Flyway para versionar a estrutura do banco e a evolução das funções SQL usadas pela aplicação.
-
-### Como a pasta está organizada
-
-- arquivos no formato `V{numero}__descricao.sql`
-- cada arquivo representa uma etapa versionada da evolução do banco
-- a execução acontece em ordem crescente de versão
-
-### Responsabilidade das migrations atuais
-
-- `V1`: estrutura inicial das tabelas e índices principais
-- `V2`: regras de autorização do morador
-- `V3`: regras administrativas e geração automática de unidades
-- `V4`: regras operacionais do colaborador
-- `V5`: funções de apoio usadas pelos repositories
-- `V6`: consolidação das regras de visibilidade dos chamados
-- `V7`: suporte ao status inicial padrão
-- `V8`: estrutura de anexos dos chamados
-- `V9`: filtro administrativo por morador
-- `V10`: filtro administrativo por prefixo do nome do morador
-- `V11`: filtros do colaborador por tipo e unidade
-- `V12`: suporte a soft delete de usuários
-- `V13`: escopo do colaborador por tipos de chamado
-
-### Convenções adotadas
-
-- as migrations foram comentadas internamente para separar blocos por responsabilidade
-- os nomes versionados existentes foram preservados para não quebrar o histórico do Flyway
-- a semântica foi melhorada com cabeçalhos e seções dentro dos próprios arquivos
-
-### Cuidados ao evoluir migrations
-
-- nunca altere a ordem das versões já existentes
-- para novas mudanças, crie um novo arquivo `V{proxima_versao}__descricao.sql`
-- prefira descrições curtas e objetivas no nome do arquivo
-- agrupe o conteúdo por blocos comentados quando a migration tiver mais de uma responsabilidade técnica
-
-### Atenção em ambientes já executados
-
-Se uma migration antiga já tiver sido aplicada em algum banco, mudar o conteúdo dela pode gerar divergência de checksum no Flyway.
-
-Nesse cenário:
-
-- evite reescrever migrations já executadas em produção
-- prefira criar uma nova migration corretiva
-- se a alteração em arquivo antigo já tiver acontecido, pode ser necessário executar `flyway repair` antes de subir a aplicação
