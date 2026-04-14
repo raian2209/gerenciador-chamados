@@ -49,11 +49,13 @@ public class MoradorService implements MoradorUseCases {
     }
 
     @Override
+    @Transactional
     public PageResult<Chamado> listarMeusChamados(AuthenticatedUser morador, PageRequest pageRequest) {
         return chamadoService.listarChamadosDoMorador(morador, pageRequest);
     }
 
     @Override
+    @Transactional
     public Chamado buscarMeuChamadoPorId(AuthenticatedUser morador, UUID chamadoId) {
         return chamadoService.buscarChamadoDoMorador(morador, chamadoId);
     }

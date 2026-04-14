@@ -13,6 +13,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @Configuration
 public class AdminBootstrapConfig {
 
+    private static final String STATUS_SOLICITADO = "Solicitado";
+    private static final String STATUS_FINALIZADO = "Finalizado";
+    private static final String STATUS_ATRASADO = "Atrasado";
+
     @Bean
     public CommandLineRunner createDefaultAdministrator(
             UsuarioRepository usuarioRepository,
@@ -50,18 +54,26 @@ public class AdminBootstrapConfig {
     }
 
     private void ensureDefaultStatuses(StatusChamadoRepository statusChamadoRepository) {
-        StatusChamado solicitado = statusChamadoRepository.findByNome("Solicitado")
+        StatusChamado solicitado = statusChamadoRepository.findByNome(STATUS_SOLICITADO)
                 .orElseGet(() -> {
                     StatusChamado status = new StatusChamado();
-                    status.setNome("Solicitado");
+                    status.setNome(STATUS_SOLICITADO);
                     status.setInicialPadrao(Boolean.FALSE);
                     return statusChamadoRepository.save(status);
                 });
 
-        statusChamadoRepository.findByNome("Finalizado")
+        statusChamadoRepository.findByNome(STATUS_FINALIZADO)
                 .orElseGet(() -> {
                     StatusChamado status = new StatusChamado();
-                    status.setNome("Finalizado");
+                    status.setNome(STATUS_FINALIZADO);
+                    status.setInicialPadrao(Boolean.FALSE);
+                    return statusChamadoRepository.save(status);
+                });
+
+        statusChamadoRepository.findByNome(STATUS_ATRASADO)
+                .orElseGet(() -> {
+                    StatusChamado status = new StatusChamado();
+                    status.setNome(STATUS_ATRASADO);
                     status.setInicialPadrao(Boolean.FALSE);
                     return statusChamadoRepository.save(status);
                 });

@@ -256,11 +256,13 @@ public class AdminService implements AdminUseCases {
     }
 
     @Override
+    @Transactional
     public PageResult<Chamado> buscarChamados(AuthenticatedUser admin, UUID statusId, String moradorNome, PageRequest pageRequest) {
         return chamadoService.listarChamadosParaAdmin(admin, statusId, moradorNome, pageRequest);
     }
 
     @Override
+    @Transactional
     public Chamado buscarChamadoPorId(AuthenticatedUser admin, UUID chamadoId) {
         return chamadoService.buscarChamadoParaAdmin(admin, chamadoId);
     }

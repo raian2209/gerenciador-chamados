@@ -57,6 +57,7 @@ public class ComentarioService implements ComentarioUseCase {
     }
 
     @Override
+    @Transactional
     public PageResult<Comentario> listarComentariosDoChamado(
             AuthenticatedUser usuario,
             UUID chamadoId,
