@@ -38,6 +38,12 @@
 
             var sync = function () {
                 var total = field.value.length;
+                var max = field.getAttribute("maxlength");
+                if (max) {
+                    output.textContent = total + "/" + max + " caracteres";
+                    return;
+                }
+
                 output.textContent = total + (total === 1 ? " caractere" : " caracteres");
             };
 
