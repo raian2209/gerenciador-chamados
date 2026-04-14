@@ -8,7 +8,9 @@ import br.com.dunnastecnologia.chamados.infrastructure.exception.BusinessRuleExc
 import br.com.dunnastecnologia.chamados.infrastructure.exception.ResourceNotFoundException;
 import br.com.dunnastecnologia.chamados.infrastructure.repository.TipoChamadoRepository;
 import br.com.dunnastecnologia.chamados.infrastructure.service.support.AuthenticatedUserValidator;
+import br.com.dunnastecnologia.chamados.infrastructure.service.support.InputValidationSupport;
 import br.com.dunnastecnologia.chamados.infrastructure.service.support.PageResultMapper;
+import br.com.dunnastecnologia.chamados.domain.validation.ValidationLimits;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,15 +36,15 @@ public class TipoChamadoService implements TipoChamadoUseCase {
     @Transactional
     public TipoChamado cadastrarTipoChamado(AuthenticatedUser admin, String titulo, int prazoHoras) {
         authenticatedUserValidator.assertAdministrador(admin);
-        validateTipoChamado(titulo, prazoHoras);
+        String tituloNormalizado = validateTipoChamado(titulo, prazoHoras);
 
-        tipoChamadoRepository.findByTitulo(titulo)
+        tipoChamadoRepository.findByTitulo(tituloNormalizado)
                 .ifPresent(existing -> {
                     throw new BusinessRuleException("Ja existe um tipo de chamado com este titulo");
                 });
 
         TipoChamado tipoChamado = new TipoChamado();
-        tipoChamado.setTitulo(titulo);
+        tipoChamado.setTitulo(tituloNormalizado);
         tipoChamado.setPrazoHoras(prazoHoras);
         return tipoChamadoRepository.save(tipoChamado);
     }
@@ -62,26 +64,30 @@ public class TipoChamadoService implements TipoChamadoUseCase {
     @Transactional
     public TipoChamado atualizarTipoChamado(AuthenticatedUser admin, UUID tipoId, String titulo, int prazoHoras) {
         authenticatedUserValidator.assertAdministrador(admin);
-        validateTipoChamado(titulo, prazoHoras);
+        String tituloNormalizado = validateTipoChamado(titulo, prazoHoras);
 
         TipoChamado tipoChamado = buscarTipoChamadoPorId(tipoId);
-        tipoChamadoRepository.findByTitulo(titulo)
+        tipoChamadoRepository.findByTitulo(tituloNormalizado)
                 .filter(existing -> !existing.getId().equals(tipoId))
                 .ifPresent(existing -> {
                     throw new BusinessRuleException("Ja existe um tipo de chamado com este titulo");
                 });
 
-        tipoChamado.setTitulo(titulo);
+        tipoChamado.setTitulo(tituloNormalizado);
         tipoChamado.setPrazoHoras(prazoHoras);
         return tipoChamadoRepository.save(tipoChamado);
     }
 
-    private void validateTipoChamado(String titulo, int prazoHoras) {
-        if (titulo == null || titulo.isBlank()) {
-            throw new BusinessRuleException("Titulo do tipo de chamado e obrigatorio");
-        }
+    private String validateTipoChamado(String titulo, int prazoHoras) {
+        String tituloNormalizado = InputValidationSupport.normalizeRequiredText(
+                titulo,
+                "Titulo do tipo de chamado e obrigatorio",
+                "Titulo do tipo de chamado deve ter no maximo 255 caracteres",
+                ValidationLimits.TIPO_CHAMADO_TITULO_MAX_LENGTH
+        );
         if (prazoHoras <= 0) {
             throw new BusinessRuleException("Prazo do tipo de chamado deve ser maior que zero");
         }
+        return tituloNormalizado;
     }
 }

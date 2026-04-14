@@ -8,7 +8,9 @@ import br.com.dunnastecnologia.chamados.infrastructure.exception.BusinessRuleExc
 import br.com.dunnastecnologia.chamados.infrastructure.exception.ResourceNotFoundException;
 import br.com.dunnastecnologia.chamados.infrastructure.repository.StatusChamadoRepository;
 import br.com.dunnastecnologia.chamados.infrastructure.service.support.AuthenticatedUserValidator;
+import br.com.dunnastecnologia.chamados.infrastructure.service.support.InputValidationSupport;
 import br.com.dunnastecnologia.chamados.infrastructure.service.support.PageResultMapper;
+import br.com.dunnastecnologia.chamados.domain.validation.ValidationLimits;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,15 +36,15 @@ public class StatusChamadoService implements StatusChamadoUseCase {
     @Transactional
     public StatusChamado cadastrarStatus(AuthenticatedUser admin, String nome) {
         authenticatedUserValidator.assertAdministrador(admin);
-        validateNome(nome);
+        String nomeNormalizado = validateNome(nome);
 
-        statusChamadoRepository.findByNome(nome)
+        statusChamadoRepository.findByNome(nomeNormalizado)
                 .ifPresent(existing -> {
                     throw new BusinessRuleException("Ja existe um status com este nome");
                 });
 
         StatusChamado status = new StatusChamado();
-        status.setNome(nome);
+        status.setNome(nomeNormalizado);
         status.setInicialPadrao(Boolean.FALSE);
         return statusChamadoRepository.save(status);
     }
@@ -62,16 +64,16 @@ public class StatusChamadoService implements StatusChamadoUseCase {
     @Transactional
     public StatusChamado atualizarStatus(AuthenticatedUser admin, UUID statusId, String nome) {
         authenticatedUserValidator.assertAdministrador(admin);
-        validateNome(nome);
+        String nomeNormalizado = validateNome(nome);
 
         StatusChamado status = buscarStatusPorId(statusId);
-        statusChamadoRepository.findByNome(nome)
+        statusChamadoRepository.findByNome(nomeNormalizado)
                 .filter(existing -> !existing.getId().equals(statusId))
                 .ifPresent(existing -> {
                     throw new BusinessRuleException("Ja existe um status com este nome");
                 });
 
-        status.setNome(nome);
+        status.setNome(nomeNormalizado);
         return statusChamadoRepository.save(status);
     }
 
@@ -86,9 +88,12 @@ public class StatusChamadoService implements StatusChamadoUseCase {
         statusChamadoRepository.save(status);
     }
 
-    private void validateNome(String nome) {
-        if (nome == null || nome.isBlank()) {
-            throw new BusinessRuleException("Nome do status e obrigatorio");
-        }
+    private String validateNome(String nome) {
+        return InputValidationSupport.normalizeRequiredText(
+                nome,
+                "Nome do status e obrigatorio",
+                "Nome do status deve ter no maximo 255 caracteres",
+                ValidationLimits.STATUS_CHAMADO_NOME_MAX_LENGTH
+        );
     }
 }

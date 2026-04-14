@@ -16,7 +16,9 @@ import br.com.dunnastecnologia.chamados.infrastructure.repository.TipoChamadoRep
 import br.com.dunnastecnologia.chamados.infrastructure.repository.UnidadeRepository;
 import br.com.dunnastecnologia.chamados.infrastructure.repository.UsuarioRepository;
 import br.com.dunnastecnologia.chamados.infrastructure.service.support.AuthenticatedUserValidator;
+import br.com.dunnastecnologia.chamados.infrastructure.service.support.InputValidationSupport;
 import br.com.dunnastecnologia.chamados.infrastructure.service.support.PageResultMapper;
+import br.com.dunnastecnologia.chamados.domain.validation.ValidationLimits;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -185,15 +187,24 @@ public class UsuarioService implements UsuarioUseCase {
         if (usuario == null) {
             throw new BusinessRuleException("Usuario e obrigatorio");
         }
-        if (usuario.getNome() == null || usuario.getNome().isBlank()) {
-            throw new BusinessRuleException("Nome do usuario e obrigatorio");
-        }
-        if (usuario.getEmail() == null || usuario.getEmail().isBlank()) {
-            throw new BusinessRuleException("Email do usuario e obrigatorio");
-        }
-        if (usuario.getSenha() == null || usuario.getSenha().isBlank()) {
-            throw new BusinessRuleException("Senha do usuario e obrigatoria");
-        }
+        usuario.setNome(InputValidationSupport.normalizeRequiredText(
+                usuario.getNome(),
+                "Nome do usuario e obrigatorio",
+                "Nome do usuario deve ter no maximo 255 caracteres",
+                ValidationLimits.USUARIO_NOME_MAX_LENGTH
+        ));
+        usuario.setEmail(InputValidationSupport.normalizeRequiredText(
+                usuario.getEmail(),
+                "Email do usuario e obrigatorio",
+                "Email do usuario deve ter no maximo 255 caracteres",
+                ValidationLimits.USUARIO_EMAIL_MAX_LENGTH
+        ));
+        usuario.setSenha(InputValidationSupport.normalizeRequiredText(
+                usuario.getSenha(),
+                "Senha do usuario e obrigatoria",
+                "Senha do usuario deve ter no maximo 255 caracteres",
+                ValidationLimits.USUARIO_SENHA_MAX_LENGTH
+        ));
     }
 
     private void validateUniqueEmail(String email, UUID currentUserId) {

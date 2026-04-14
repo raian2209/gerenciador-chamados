@@ -11,7 +11,9 @@ import br.com.dunnastecnologia.chamados.infrastructure.exception.ResourceNotFoun
 import br.com.dunnastecnologia.chamados.infrastructure.repository.ComentarioRepository;
 import br.com.dunnastecnologia.chamados.infrastructure.repository.UsuarioRepository;
 import br.com.dunnastecnologia.chamados.infrastructure.service.support.ChamadoAccessSupport;
+import br.com.dunnastecnologia.chamados.infrastructure.service.support.InputValidationSupport;
 import br.com.dunnastecnologia.chamados.infrastructure.service.support.PageResultMapper;
+import br.com.dunnastecnologia.chamados.domain.validation.ValidationLimits;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,18 +42,21 @@ public class ComentarioService implements ComentarioUseCase {
     @Override
     @Transactional
     public Comentario comentar(AuthenticatedUser usuario, UUID chamadoId, String mensagem) {
-        if (mensagem == null || mensagem.isBlank()) {
-            throw new BusinessRuleException("Mensagem do comentario e obrigatoria");
-        }
+        String mensagemNormalizada = InputValidationSupport.normalizeRequiredText(
+                mensagem,
+                "Mensagem do comentario e obrigatoria",
+                "Mensagem do comentario deve ter no maximo 255 caracteres",
+                ValidationLimits.COMENTARIO_MENSAGEM_MAX_LENGTH
+        );
 
         Usuario autor = usuarioRepository.findByIdAndAtivoTrue(usuario.id())
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario autor nao encontrado"));
-        Chamado chamado = chamadoAccessSupport.findAccessibleChamado(usuario, chamadoId);
+        Chamado chamado = chamadoAccessSupport.findAccessibleChamadoEmAberto(usuario, chamadoId);
 
         Comentario comentario = new Comentario();
         comentario.setAutor(autor);
         comentario.setChamado(chamado);
-        comentario.setMensagem(mensagem);
+        comentario.setMensagem(mensagemNormalizada);
         comentario.setDataCriacao(LocalDateTime.now());
         return comentarioRepository.save(comentario);
     }

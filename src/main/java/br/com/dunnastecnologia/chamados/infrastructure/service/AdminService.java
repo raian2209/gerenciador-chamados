@@ -18,7 +18,9 @@ import br.com.dunnastecnologia.chamados.infrastructure.repository.BlocoRepositor
 import br.com.dunnastecnologia.chamados.infrastructure.repository.MoradorRepository;
 import br.com.dunnastecnologia.chamados.infrastructure.repository.UnidadeRepository;
 import br.com.dunnastecnologia.chamados.infrastructure.service.support.AuthenticatedUserValidator;
+import br.com.dunnastecnologia.chamados.infrastructure.service.support.InputValidationSupport;
 import br.com.dunnastecnologia.chamados.infrastructure.service.support.PageResultMapper;
+import br.com.dunnastecnologia.chamados.domain.validation.ValidationLimits;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -65,15 +67,18 @@ public class AdminService implements AdminUseCases {
     @Transactional
     public Bloco cadastrarBloco(AuthenticatedUser admin, String identificacao, int quantidadeAndares, int apartamentosPorAndar) {
         authenticatedUserValidator.assertAdministrador(admin);
-        if (identificacao == null || identificacao.isBlank()) {
-            throw new BusinessRuleException("Identificacao do bloco e obrigatoria");
-        }
+        String identificacaoNormalizada = InputValidationSupport.normalizeRequiredText(
+                identificacao,
+                "Identificacao do bloco e obrigatoria",
+                "Identificacao do bloco deve ter no maximo 255 caracteres",
+                ValidationLimits.BLOCO_IDENTIFICACAO_MAX_LENGTH
+        );
         if (quantidadeAndares <= 0 || apartamentosPorAndar <= 0) {
             throw new BusinessRuleException("Quantidade de andares e apartamentos por andar deve ser maior que zero");
         }
 
         Bloco bloco = new Bloco();
-        bloco.setIdentificacao(identificacao);
+        bloco.setIdentificacao(identificacaoNormalizada);
         bloco.setQuantidadeAndares(quantidadeAndares);
         bloco.setApartamentosPorAndar(apartamentosPorAndar);
 
