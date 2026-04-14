@@ -2,6 +2,7 @@ package br.com.dunnastecnologia.chamados.infrastructure.service.support;
 
 import br.com.dunnastecnologia.chamados.application.Security.AuthenticatedUser;
 import br.com.dunnastecnologia.chamados.domain.model.Chamado;
+import br.com.dunnastecnologia.chamados.infrastructure.exception.BusinessRuleException;
 import br.com.dunnastecnologia.chamados.infrastructure.exception.ResourceNotFoundException;
 import br.com.dunnastecnologia.chamados.infrastructure.repository.ChamadoRepository;
 import org.springframework.stereotype.Component;
@@ -38,5 +39,17 @@ public class ChamadoAccessSupport {
         authenticatedUserValidator.assertMorador(user);
         return chamadoRepository.findByIdAndMoradorId(chamadoId, user.id())
                 .orElseThrow(() -> new ResourceNotFoundException("Chamado nao encontrado para o morador"));
+    }
+
+    public Chamado findAccessibleChamadoEmAberto(AuthenticatedUser user, UUID chamadoId) {
+        Chamado chamado = findAccessibleChamado(user, chamadoId);
+        assertChamadoEmAberto(chamado);
+        return chamado;
+    }
+
+    public void assertChamadoEmAberto(Chamado chamado) {
+        if (chamado.getDataFinalizacao() != null) {
+            throw new BusinessRuleException("Chamados finalizados nao podem ser alterados");
+        }
     }
 }
