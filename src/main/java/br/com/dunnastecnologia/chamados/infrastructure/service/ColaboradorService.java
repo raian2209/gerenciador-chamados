@@ -54,7 +54,6 @@ public class ColaboradorService implements ColaboradorUseCases {
     }
 
     @Override
-    @Transactional
     public PageResult<Chamado> buscarChamados(
             AuthenticatedUser colaborador,
             UUID statusId,
@@ -72,7 +71,6 @@ public class ColaboradorService implements ColaboradorUseCases {
     }
 
     @Override
-    @Transactional
     public Chamado buscarChamadoPorId(AuthenticatedUser colaborador, UUID chamadoId) {
         return chamadoService.buscarChamadoParaColaborador(colaborador, chamadoId);
     }

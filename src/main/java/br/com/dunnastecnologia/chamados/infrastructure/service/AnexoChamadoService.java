@@ -71,7 +71,6 @@ public class AnexoChamadoService implements AnexoChamadoUseCases {
     }
 
     @Override
-    @Transactional
     public PageResult<AnexoChamadoInfo> listarAnexosDoChamado(
             AuthenticatedUser usuario,
             UUID chamadoId,
@@ -91,7 +90,6 @@ public class AnexoChamadoService implements AnexoChamadoUseCases {
     }
 
     @Override
-    @Transactional
     public AnexoChamadoConteudo buscarAnexoPorId(
             AuthenticatedUser usuario,
             UUID chamadoId,

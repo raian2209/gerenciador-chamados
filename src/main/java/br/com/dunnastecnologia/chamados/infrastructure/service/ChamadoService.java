@@ -85,7 +85,6 @@ public class ChamadoService implements ChamadoUseCase {
     }
 
     @Override
-    @Transactional
     public PageResult<Chamado> listarChamadosParaAdmin(
             AuthenticatedUser admin,
             UUID statusId,
@@ -93,12 +92,10 @@ public class ChamadoService implements ChamadoUseCase {
             PageRequest pageRequest
     ) {
         authenticatedUserValidator.assertAdministrador(admin);
-        sincronizarChamadosAtrasados();
         return PageResultMapper.fromPage(chamadoRepository.buscarParaAdmin(admin.id(), statusId, moradorNome, pageRequest));
     }
 
     @Override
-    @Transactional
     public PageResult<Chamado> listarChamadosParaColaborador(
             AuthenticatedUser colaborador,
             UUID statusId,
@@ -107,7 +104,6 @@ public class ChamadoService implements ChamadoUseCase {
             PageRequest pageRequest
     ) {
         authenticatedUserValidator.assertColaborador(colaborador);
-        sincronizarChamadosAtrasados();
         return PageResultMapper.fromPage(
                 chamadoRepository.buscarParaColaborador(
                         colaborador.id(),
@@ -120,36 +116,28 @@ public class ChamadoService implements ChamadoUseCase {
     }
 
     @Override
-    @Transactional
     public PageResult<Chamado> listarChamadosDoMorador(AuthenticatedUser morador, PageRequest pageRequest) {
         authenticatedUserValidator.assertMorador(morador);
-        sincronizarChamadosAtrasados();
         return PageResultMapper.fromPage(chamadoRepository.findByMoradorId(morador.id(), pageRequest));
     }
 
     @Override
-    @Transactional
     public Chamado buscarChamadoParaAdmin(AuthenticatedUser admin, UUID chamadoId) {
         authenticatedUserValidator.assertAdministrador(admin);
-        sincronizarChamadosAtrasados();
         return chamadoRepository.findByIdAndAdminId(admin.id(), chamadoId)
                 .orElseThrow(() -> new ResourceNotFoundException("Chamado nao encontrado para o administrador"));
     }
 
     @Override
-    @Transactional
     public Chamado buscarChamadoParaColaborador(AuthenticatedUser colaborador, UUID chamadoId) {
         authenticatedUserValidator.assertColaborador(colaborador);
-        sincronizarChamadosAtrasados();
         return chamadoRepository.findByIdAndColaboradorId(colaborador.id(), chamadoId)
                 .orElseThrow(() -> new ResourceNotFoundException("Chamado nao encontrado para o colaborador"));
     }
 
     @Override
-    @Transactional
     public Chamado buscarChamadoDoMorador(AuthenticatedUser morador, UUID chamadoId) {
         authenticatedUserValidator.assertMorador(morador);
-        sincronizarChamadosAtrasados();
         return chamadoRepository.findByIdAndMoradorId(chamadoId, morador.id())
                 .orElseThrow(() -> new ResourceNotFoundException("Chamado nao encontrado para o morador"));
     }
@@ -209,9 +197,5 @@ public class ChamadoService implements ChamadoUseCase {
         chamado.setStatus(statusFinalizado);
         chamado.setDataFinalizacao(LocalDateTime.now());
         return chamadoRepository.save(chamado);
-    }
-
-    private void sincronizarChamadosAtrasados() {
-        chamadoRepository.marcarChamadosAtrasados();
     }
 }

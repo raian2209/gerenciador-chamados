@@ -23,8 +23,6 @@ public class ChamadoAccessSupport {
     }
 
     public Chamado findAccessibleChamado(AuthenticatedUser user, UUID chamadoId) {
-        chamadoRepository.marcarChamadosAtrasados();
-
         if (authenticatedUserValidator.isAdministrador(user)) {
             authenticatedUserValidator.assertAdministrador(user);
             return chamadoRepository.findByIdAndAdminId(user.id(), chamadoId)
