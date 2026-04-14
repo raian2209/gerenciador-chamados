@@ -2,6 +2,7 @@ package br.com.dunnastecnologia.chamados.infrastructure.controller.web;
 
 import br.com.dunnastecnologia.chamados.application.UserCase.AdminUseCases;
 import br.com.dunnastecnologia.chamados.application.UserCase.AnexoChamadoUseCases;
+import br.com.dunnastecnologia.chamados.application.UserCase.AnexoComentarioUseCases;
 import br.com.dunnastecnologia.chamados.application.UserCase.ComentarioUseCase;
 import br.com.dunnastecnologia.chamados.application.pagination.PageResult;
 import br.com.dunnastecnologia.chamados.domain.model.Administrador;
@@ -32,6 +33,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.Map;
@@ -46,17 +48,20 @@ public class AdminWebController {
 
     private final AdminUseCases adminUseCases;
     private final AnexoChamadoUseCases anexoChamadoUseCases;
+    private final AnexoComentarioUseCases anexoComentarioUseCases;
     private final ComentarioUseCase comentarioUseCase;
     private final WebControllerSupport support;
 
     public AdminWebController(
             AdminUseCases adminUseCases,
             AnexoChamadoUseCases anexoChamadoUseCases,
+            AnexoComentarioUseCases anexoComentarioUseCases,
             ComentarioUseCase comentarioUseCase,
             WebControllerSupport support
     ) {
         this.adminUseCases = adminUseCases;
         this.anexoChamadoUseCases = anexoChamadoUseCases;
+        this.anexoComentarioUseCases = anexoComentarioUseCases;
         this.comentarioUseCase = comentarioUseCase;
         this.support = support;
     }
@@ -668,15 +673,64 @@ public class AdminWebController {
             Authentication authentication,
             @PathVariable UUID chamadoId,
             @ModelAttribute ComentarioForm comentarioForm,
+            @RequestParam(name = "arquivo", required = false) MultipartFile arquivo,
             RedirectAttributes redirectAttributes
     ) {
-        adminUseCases.comentarChamado(
-                support.authenticatedUser(authentication),
+        var currentUser = support.authenticatedUser(authentication);
+        var comentario = adminUseCases.comentarChamado(
+                currentUser,
                 chamadoId,
                 comentarioForm.getMensagem()
         );
+
+        if (arquivo != null && !arquivo.isEmpty()) {
+            try {
+                anexoComentarioUseCases.adicionarAnexoAoComentario(
+                        currentUser,
+                        chamadoId,
+                        comentario.getId(),
+                        arquivo.getOriginalFilename(),
+                        arquivo.getContentType(),
+                        arquivo.getSize(),
+                        arquivo.getBytes()
+                );
+            } catch (Exception exception) {
+                throw new IllegalArgumentException("Nao foi possivel anexar o arquivo ao comentario.", exception);
+            }
+        }
+
         redirectAttributes.addFlashAttribute("successMessage", "Comentario adicionado ao chamado.");
         return "redirect:/admin/chamados/" + chamadoId;
+    }
+
+    @GetMapping("/chamados/{chamadoId}/comentarios/{comentarioId}/anexos/{anexoId}")
+    @Transactional(readOnly = true)
+    public ResponseEntity<byte[]> baixarAnexoDoComentario(
+            Authentication authentication,
+            @PathVariable UUID chamadoId,
+            @PathVariable UUID comentarioId,
+            @PathVariable UUID anexoId
+    ) {
+        var anexo = anexoComentarioUseCases.buscarAnexoPorId(
+                support.authenticatedUser(authentication),
+                chamadoId,
+                comentarioId,
+                anexoId
+        );
+
+        MediaType mediaType = MediaType.APPLICATION_OCTET_STREAM;
+        if (anexo.contentType() != null && !anexo.contentType().isBlank()) {
+            mediaType = MediaType.parseMediaType(anexo.contentType());
+        }
+
+        return ResponseEntity.ok()
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment().filename(anexo.nomeArquivo()).build().toString()
+                )
+                .contentType(mediaType)
+                .contentLength(anexo.tamanhoBytes())
+                .body(anexo.conteudo());
     }
 
     @GetMapping("/chamados/{chamadoId}/anexos/{anexoId}")
