@@ -8,10 +8,13 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
 public interface ComentarioRepository extends JpaRepository<Comentario, UUID> {
+
+    Optional<Comentario> findByIdAndChamadoId(UUID id, UUID chamadoId);
 
     /**
      * Lista os comentarios de um chamado em ordem cronologica usando funcao SQL dedicada.

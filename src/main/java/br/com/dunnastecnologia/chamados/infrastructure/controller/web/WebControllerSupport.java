@@ -177,6 +177,20 @@ public class WebControllerSupport {
         values.put("autorId", comentario.getAutor() == null ? null : comentario.getAutor().getId());
         values.put("autorNome", comentario.getAutor() == null ? null : comentario.getAutor().getNome());
         values.put("autorRole", comentario.getAutor() == null ? null : roleLabel(comentario.getAutor().getRole()));
+        values.put(
+                "anexos",
+                comentario.getAnexos().stream()
+                        .map(anexo -> {
+                            Map<String, Object> anexoValues = new LinkedHashMap<>();
+                            anexoValues.put("id", anexo.getId());
+                            anexoValues.put("nomeArquivo", anexo.getNomeArquivo());
+                            anexoValues.put("contentType", anexo.getContentType());
+                            anexoValues.put("tamanhoBytes", anexo.getTamanhoBytes());
+                            anexoValues.put("tamanhoFormatado", formatBytes(anexo.getTamanhoBytes()));
+                            return anexoValues;
+                        })
+                        .toList()
+        );
         return values;
     }
 

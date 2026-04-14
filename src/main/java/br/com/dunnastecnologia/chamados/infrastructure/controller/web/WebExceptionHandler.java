@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @ControllerAdvice(basePackageClasses = {
@@ -28,7 +29,8 @@ public class WebExceptionHandler {
             BusinessRuleException.class,
             ResourceNotFoundException.class,
             UnauthorizedOperationException.class,
-            IllegalArgumentException.class
+            IllegalArgumentException.class,
+            MaxUploadSizeExceededException.class
     })
     public String handleKnownExceptions(
             RuntimeException exception,
@@ -36,7 +38,10 @@ public class WebExceptionHandler {
             RedirectAttributes redirectAttributes,
             Authentication authentication
     ) {
-        redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
+        String errorMessage = exception instanceof MaxUploadSizeExceededException
+                ? "O arquivo enviado excede o limite de 5 MB."
+                : exception.getMessage();
+        redirectAttributes.addFlashAttribute("errorMessage", errorMessage);
 
         String referer = request.getHeader("Referer");
         if (referer != null && !referer.isBlank()) {
