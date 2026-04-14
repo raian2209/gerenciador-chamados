@@ -1,5 +1,6 @@
 package br.com.dunnastecnologia.chamados.domain.model;
 
+import br.com.dunnastecnologia.chamados.domain.validation.ValidationLimits;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import jakarta.persistence.Id;
@@ -22,11 +23,13 @@ public abstract class Usuario {
     @GeneratedValue
     private UUID id;
 
+    @Column(nullable = false, length = ValidationLimits.USUARIO_NOME_MAX_LENGTH)
     private String nome;
 
-    @Column(unique = true)
+    @Column(unique = true, nullable = false, length = ValidationLimits.USUARIO_EMAIL_MAX_LENGTH)
     private String email;
 
+    @Column(nullable = false, length = ValidationLimits.USUARIO_SENHA_MAX_LENGTH)
     private String senha;
 
     private Boolean ativo = Boolean.TRUE;

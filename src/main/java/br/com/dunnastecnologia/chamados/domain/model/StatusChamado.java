@@ -1,5 +1,7 @@
 package br.com.dunnastecnologia.chamados.domain.model;
 
+import br.com.dunnastecnologia.chamados.domain.validation.ValidationLimits;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
@@ -19,6 +21,7 @@ public class StatusChamado {
     @GeneratedValue
     private UUID id;
 
+    @Column(nullable = false, length = ValidationLimits.STATUS_CHAMADO_NOME_MAX_LENGTH)
     private String nome;
 
     private Boolean inicialPadrao;

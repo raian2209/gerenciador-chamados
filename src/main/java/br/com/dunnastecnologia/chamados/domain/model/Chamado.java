@@ -1,5 +1,7 @@
 package br.com.dunnastecnologia.chamados.domain.model;
 
+import br.com.dunnastecnologia.chamados.domain.validation.ValidationLimits;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import jakarta.persistence.Id;
@@ -23,6 +25,7 @@ public class Chamado {
     @GeneratedValue
     private UUID id;
 
+    @Column(nullable = false, length = ValidationLimits.CHAMADO_DESCRICAO_MAX_LENGTH)
     private String descricao;
 
     private LocalDateTime dataAbertura;

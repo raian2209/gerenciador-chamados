@@ -1,5 +1,7 @@
 package br.com.dunnastecnologia.chamados.domain.model;
 
+import br.com.dunnastecnologia.chamados.domain.validation.ValidationLimits;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
@@ -22,6 +24,7 @@ public class TipoChamado {
     @GeneratedValue
     private UUID id;
 
+    @Column(nullable = false, length = ValidationLimits.TIPO_CHAMADO_TITULO_MAX_LENGTH)
     private String titulo;
 
     private Integer prazoHoras;

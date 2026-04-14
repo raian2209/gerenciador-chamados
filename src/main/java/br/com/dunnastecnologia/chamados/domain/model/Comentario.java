@@ -1,6 +1,10 @@
 package br.com.dunnastecnologia.chamados.domain.model;
 
+import br.com.dunnastecnologia.chamados.domain.validation.ValidationLimits;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.Id;
 import jakarta.persistence.GeneratedValue;
@@ -11,6 +15,8 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -23,6 +29,7 @@ public class Comentario {
     @GeneratedValue
     private UUID id;
 
+    @Column(nullable = false, length = ValidationLimits.COMENTARIO_MENSAGEM_MAX_LENGTH)
     private String mensagem;
 
     private LocalDateTime dataCriacao;
@@ -34,5 +41,8 @@ public class Comentario {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "chamado_id")
     private Chamado chamado;
+
+    @OneToMany(mappedBy = "comentario", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<AnexoComentario> anexos = new ArrayList<>();
 
 }

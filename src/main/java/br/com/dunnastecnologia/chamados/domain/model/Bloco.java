@@ -1,5 +1,7 @@
 package br.com.dunnastecnologia.chamados.domain.model;
 
+import br.com.dunnastecnologia.chamados.domain.validation.ValidationLimits;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import jakarta.persistence.Id;
@@ -21,6 +23,7 @@ public class Bloco {
     @GeneratedValue
     private UUID id;
 
+    @Column(nullable = false, length = ValidationLimits.BLOCO_IDENTIFICACAO_MAX_LENGTH)
     private String identificacao;
 
     private Integer quantidadeAndares;
