@@ -63,4 +63,10 @@ public class MoradorService implements MoradorUseCases {
     public Comentario comentarChamado(AuthenticatedUser morador, UUID chamadoId, String mensagem) {
         return comentarioService.comentar(morador, chamadoId, mensagem);
     }
+
+    @Override
+    @Transactional
+    public Chamado reabrirChamado(AuthenticatedUser morador, UUID chamadoId) {
+        return chamadoService.reabrirComoMorador(morador, chamadoId);
+    }
 }

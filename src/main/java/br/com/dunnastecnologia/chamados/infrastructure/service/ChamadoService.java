@@ -16,7 +16,9 @@ import br.com.dunnastecnologia.chamados.infrastructure.repository.StatusChamadoR
 import br.com.dunnastecnologia.chamados.infrastructure.repository.TipoChamadoRepository;
 import br.com.dunnastecnologia.chamados.infrastructure.repository.UnidadeRepository;
 import br.com.dunnastecnologia.chamados.infrastructure.service.support.AuthenticatedUserValidator;
+import br.com.dunnastecnologia.chamados.infrastructure.service.support.InputValidationSupport;
 import br.com.dunnastecnologia.chamados.infrastructure.service.support.PageResultMapper;
+import br.com.dunnastecnologia.chamados.domain.validation.ValidationLimits;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +31,8 @@ import java.util.UUID;
 public class ChamadoService implements ChamadoUseCase {
 
     private static final String STATUS_FINALIZADO = "Finalizado";
+    private static final String STATUS_SOLICITADO = "Solicitado";
+    private static final String STATUS_ATRASADO = "Atrasado";
 
     private final ChamadoRepository chamadoRepository;
     private final MoradorRepository moradorRepository;
@@ -57,9 +61,12 @@ public class ChamadoService implements ChamadoUseCase {
     @Transactional
     public Chamado abrirChamado(AuthenticatedUser morador, UUID unidadeId, UUID tipoChamadoId, String descricao) {
         authenticatedUserValidator.assertMorador(morador);
-        if (descricao == null || descricao.isBlank()) {
-            throw new BusinessRuleException("Descricao do chamado e obrigatoria");
-        }
+        String descricaoNormalizada = InputValidationSupport.normalizeRequiredText(
+                descricao,
+                "Descricao do chamado e obrigatoria",
+                "Descricao do chamado deve ter no maximo 255 caracteres",
+                ValidationLimits.CHAMADO_DESCRICAO_MAX_LENGTH
+        );
         if (!moradorRepository.existsByIdAndUnidadeId(morador.id(), unidadeId)) {
             throw new BusinessRuleException("Morador nao pode abrir chamado para esta unidade");
         }
@@ -74,7 +81,7 @@ public class ChamadoService implements ChamadoUseCase {
                 .orElseThrow(() -> new BusinessRuleException("Nenhum status inicial padrao foi configurado"));
 
         Chamado chamado = new Chamado();
-        chamado.setDescricao(descricao);
+        chamado.setDescricao(descricaoNormalizada);
         chamado.setMorador(moradorEntity);
         chamado.setUnidade(unidade);
         chamado.setTipoChamado(tipoChamado);
@@ -174,6 +181,14 @@ public class ChamadoService implements ChamadoUseCase {
         return finalizarChamado(chamado);
     }
 
+    @Override
+    @Transactional
+    public Chamado reabrirComoMorador(AuthenticatedUser morador, UUID chamadoId) {
+        authenticatedUserValidator.assertMorador(morador);
+        Chamado chamado = buscarChamadoDoMorador(morador, chamadoId);
+        return reabrirChamado(chamado);
+    }
+
     private Chamado atualizarStatus(Chamado chamado, UUID statusId) {
         if (chamado.getDataFinalizacao() != null) {
             throw new BusinessRuleException("Nao e permitido alterar o status de um chamado finalizado");
@@ -183,6 +198,9 @@ public class ChamadoService implements ChamadoUseCase {
                 .orElseThrow(() -> new ResourceNotFoundException("Status de chamado nao encontrado"));
 
         chamado.setStatus(status);
+        if (STATUS_FINALIZADO.equals(status.getNome())) {
+            chamado.setDataFinalizacao(LocalDateTime.now());
+        }
         return chamadoRepository.save(chamado);
     }
 
@@ -197,5 +215,35 @@ public class ChamadoService implements ChamadoUseCase {
         chamado.setStatus(statusFinalizado);
         chamado.setDataFinalizacao(LocalDateTime.now());
         return chamadoRepository.save(chamado);
+    }
+
+    private Chamado reabrirChamado(Chamado chamado) {
+        if (chamado.getDataFinalizacao() == null) {
+            throw new BusinessRuleException("Somente chamados finalizados podem ser reabertos");
+        }
+
+        chamado.setStatus(resolverStatusDaReabertura(chamado));
+        chamado.setDataFinalizacao(null);
+        return chamadoRepository.save(chamado);
+    }
+
+    private StatusChamado resolverStatusDaReabertura(Chamado chamado) {
+        String nomeStatus = chamadoEstaAtrasado(chamado) ? STATUS_ATRASADO : STATUS_SOLICITADO;
+        return statusChamadoRepository.findByNome(nomeStatus)
+                .orElseThrow(() -> new BusinessRuleException("Status " + nomeStatus + " nao foi configurado"));
+    }
+
+    private boolean chamadoEstaAtrasado(Chamado chamado) {
+        if (chamado.getDataAbertura() == null || chamado.getTipoChamado() == null) {
+            return false;
+        }
+
+        Integer prazoHoras = chamado.getTipoChamado().getPrazoHoras();
+        if (prazoHoras == null) {
+            return false;
+        }
+
+        LocalDateTime dataLimite = chamado.getDataAbertura().plusHours(prazoHoras.longValue());
+        return LocalDateTime.now().isAfter(dataLimite);
     }
 }
