@@ -1,0 +1,155 @@
+package br.com.dunnastecnologia.chamados.infrastructure.controller.web;
+
+import br.com.dunnastecnologia.chamados.application.UserCase.AnexoChamadoUseCases;
+import br.com.dunnastecnologia.chamados.application.UserCase.ComentarioUseCase;
+import br.com.dunnastecnologia.chamados.application.UserCase.MoradorUseCases;
+import br.com.dunnastecnologia.chamados.application.UserCase.TipoChamadoUseCase;
+import br.com.dunnastecnologia.chamados.application.pagination.PageResult;
+import br.com.dunnastecnologia.chamados.domain.model.Chamado;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
+
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
+
+@WebMvcTest(MoradorWebController.class)
+@AutoConfigureMockMvc(addFilters = false)
+@Import(WebControllerSupport.class)
+class MoradorWebControllerIntegrationTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockitoBean
+    private MoradorUseCases moradorUseCases;
+
+    @MockitoBean
+    private TipoChamadoUseCase tipoChamadoUseCase;
+
+    @MockitoBean
+    private AnexoChamadoUseCases anexoChamadoUseCases;
+
+    @MockitoBean
+    private ComentarioUseCase comentarioUseCase;
+
+    @Test
+    void listarChamadosDeveRespeitarPaginacaoDoMorador() throws Exception {
+        PageRequest pageRequest = PageRequest.of(3, 7);
+        var morador = new br.com.dunnastecnologia.chamados.application.Security.AuthenticatedUser(
+                UUID.fromString("00000000-0000-0000-0000-000000000003"),
+                "morador@condominio.local",
+                "ROLE_MORADOR"
+        );
+
+        when(moradorUseCases.listarMeusChamados(morador, pageRequest))
+                .thenReturn(new PageResult<>(List.of(), 0, 0, 3, 7));
+
+        mockMvc.perform(
+                        get("/morador/chamados")
+                                .with(authentication(WebTestAuthenticationFactory.morador()))
+                                .param("page", "3")
+                                .param("size", "7")
+                )
+                .andExpect(status().isOk())
+                .andExpect(view().name("morador/chamados/lista"))
+                .andExpect(model().attributeExists("chamados", "chamadosPage"));
+
+        verify(moradorUseCases).listarMeusChamados(morador, pageRequest);
+    }
+
+    @Test
+    void abrirChamadoDeveRedirecionarParaDetalheDoRegistroCriado() throws Exception {
+        UUID unidadeId = UUID.fromString("00000000-0000-0000-0000-000000000040");
+        UUID tipoChamadoId = UUID.fromString("00000000-0000-0000-0000-000000000041");
+        UUID chamadoId = UUID.fromString("00000000-0000-0000-0000-000000000042");
+
+        Chamado chamado = new Chamado();
+        chamado.setId(chamadoId);
+
+        when(moradorUseCases.abrirChamado(
+                new br.com.dunnastecnologia.chamados.application.Security.AuthenticatedUser(
+                        UUID.fromString("00000000-0000-0000-0000-000000000003"),
+                        "morador@condominio.local",
+                        "ROLE_MORADOR"
+                ),
+                unidadeId,
+                tipoChamadoId,
+                "Vazamento na cozinha"
+        )).thenReturn(chamado);
+
+        mockMvc.perform(
+                        post("/morador/chamados")
+                                .with(authentication(WebTestAuthenticationFactory.morador()))
+                                .param("unidadeId", unidadeId.toString())
+                                .param("tipoChamadoId", tipoChamadoId.toString())
+                                .param("descricao", "Vazamento na cozinha")
+                )
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/morador/chamados/" + chamadoId));
+
+        verify(moradorUseCases).abrirChamado(
+                new br.com.dunnastecnologia.chamados.application.Security.AuthenticatedUser(
+                        UUID.fromString("00000000-0000-0000-0000-000000000003"),
+                        "morador@condominio.local",
+                        "ROLE_MORADOR"
+                ),
+                unidadeId,
+                tipoChamadoId,
+                "Vazamento na cozinha"
+        );
+    }
+
+    @Test
+    void adicionarAnexoDeveEncaminharMultipartParaCamadaDeAplicacao() throws Exception {
+        UUID chamadoId = UUID.fromString("00000000-0000-0000-0000-000000000043");
+        byte[] conteudo = "conteudo".getBytes();
+        MockMultipartFile arquivo = new MockMultipartFile(
+                "arquivo",
+                "evidencia.txt",
+                "text/plain",
+                conteudo
+        );
+
+        mockMvc.perform(
+                        multipart("/morador/chamados/{chamadoId}/anexos", chamadoId)
+                                .file(arquivo)
+                                .with(authentication(WebTestAuthenticationFactory.morador()))
+                )
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/morador/chamados/" + chamadoId));
+
+        verify(anexoChamadoUseCases).adicionarAnexo(
+                eq(new br.com.dunnastecnologia.chamados.application.Security.AuthenticatedUser(
+                        UUID.fromString("00000000-0000-0000-0000-000000000003"),
+                        "morador@condominio.local",
+                        "ROLE_MORADOR"
+                )),
+                eq(chamadoId),
+                eq("evidencia.txt"),
+                eq("text/plain"),
+                eq((long) conteudo.length),
+                argThat(bytes -> Arrays.equals(bytes, conteudo))
+        );
+    }
+}
