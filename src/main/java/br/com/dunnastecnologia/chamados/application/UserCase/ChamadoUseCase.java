@@ -72,4 +72,9 @@ public interface ChamadoUseCase {
             AuthenticatedUser colaborador,
             UUID chamadoId
     );
+
+    Chamado reabrirComoMorador(
+            AuthenticatedUser morador,
+            UUID chamadoId
+    );
 }

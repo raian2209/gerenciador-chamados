@@ -57,4 +57,9 @@ public interface MoradorUseCases {
             UUID chamadoId,
             String mensagem
     );
+
+    Chamado reabrirChamado(
+            AuthenticatedUser morador,
+            UUID chamadoId
+    );
 }
