@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -82,4 +83,14 @@ public interface MoradorRepository extends JpaRepository<Morador, UUID> {
             @Param("moradorId") UUID moradorId,
             @Param("unidadeId") UUID unidadeId
     );
+
+    @Query("""
+            select u.id, m
+            from Morador m
+            join m.unidades u
+            where m.ativo = true
+              and u.id in :unidadeIds
+            order by lower(m.nome)
+            """)
+    List<Object[]> findActiveByUnidadeIds(@Param("unidadeIds") List<UUID> unidadeIds);
 }
