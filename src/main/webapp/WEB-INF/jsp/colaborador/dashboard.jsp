@@ -11,6 +11,10 @@
             <%@ include file="/WEB-INF/jsp/fragments/alerts.jspf" %>
 
             <section class="stats-grid">
+                <article class="stat-card">
+                    <span>Chamados atrasados</span>
+                    <strong>${totalChamadosAtrasados}</strong>
+                </article>
                 <article class="stat-card stat-card-wide">
                     <span>Chamados em atendimento</span>
                     <strong>${totalChamadosAbertos}</strong>

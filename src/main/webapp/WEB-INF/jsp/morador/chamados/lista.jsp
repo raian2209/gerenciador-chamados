@@ -19,6 +19,44 @@
                     <a href="${ctx}/morador/chamados/novo" class="btn btn-primary">Abrir chamado</a>
                 </div>
 
+                <form method="get" action="${ctx}/morador/chamados" class="filter-grid">
+                    <label class="field">
+                        <span>Status</span>
+                        <select name="statusId">
+                            <option value="">Todos</option>
+                            <c:forEach items="${statusDisponiveis}" var="status">
+                                <option value="${status.id}" ${filtroStatusId eq status.id ? 'selected' : ''}>${status.nome}</option>
+                            </c:forEach>
+                        </select>
+                    </label>
+                    <label class="field">
+                        <span>Unidade</span>
+                        <select name="unidadeId">
+                            <option value="">Todas</option>
+                            <c:forEach items="${unidadesDisponiveis}" var="unidade">
+                                <option value="${unidade.id}" ${filtroUnidadeId eq unidade.id ? 'selected' : ''}>${unidade.identificacao}</option>
+                            </c:forEach>
+                        </select>
+                    </label>
+                    <label class="field">
+                        <span>Tipo</span>
+                        <select name="tipoChamadoId">
+                            <option value="">Todos</option>
+                            <c:forEach items="${tiposChamadoDisponiveis}" var="tipo">
+                                <option value="${tipo.id}" ${filtroTipoChamadoId eq tipo.id ? 'selected' : ''}>${tipo.titulo}</option>
+                            </c:forEach>
+                        </select>
+                    </label>
+                    <label class="field">
+                        <span>Data de abertura</span>
+                        <input type="date" name="dataAbertura" value="${filtroDataAbertura}">
+                    </label>
+                    <div class="button-row align-end">
+                        <button type="submit" class="btn btn-primary">Filtrar</button>
+                        <a href="${ctx}/morador/chamados" class="btn btn-secondary">Limpar</a>
+                    </div>
+                </form>
+
                 <c:choose>
                     <c:when test="${empty chamados}">
                         <div class="empty-state">
@@ -58,11 +96,11 @@
 
                 <div class="pagination">
                     <c:if test="${chamadosPage.hasPrevious}">
-                        <a class="btn btn-secondary" href="${ctx}/morador/chamados?page=${chamadosPage.page - 1}&size=${chamadosPage.size}">Anterior</a>
+                        <a class="btn btn-secondary" href="${ctx}/morador/chamados?page=${chamadosPage.page - 1}&size=${chamadosPage.size}&statusId=${filtroStatusId}&unidadeId=${filtroUnidadeId}&tipoChamadoId=${filtroTipoChamadoId}&dataAbertura=${filtroDataAbertura}">Anterior</a>
                     </c:if>
                     <span>Pagina ${chamadosPage.page + 1} de ${chamadosPage.totalPages == 0 ? 1 : chamadosPage.totalPages}</span>
                     <c:if test="${chamadosPage.hasNext}">
-                        <a class="btn btn-secondary" href="${ctx}/morador/chamados?page=${chamadosPage.page + 1}&size=${chamadosPage.size}">Proxima</a>
+                        <a class="btn btn-secondary" href="${ctx}/morador/chamados?page=${chamadosPage.page + 1}&size=${chamadosPage.size}&statusId=${filtroStatusId}&unidadeId=${filtroUnidadeId}&tipoChamadoId=${filtroTipoChamadoId}&dataAbertura=${filtroDataAbertura}">Proxima</a>
                     </c:if>
                 </div>
             </section>

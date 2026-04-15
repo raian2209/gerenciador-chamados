@@ -13,6 +13,7 @@
             <c:if test="${not empty statusEdicao}">
                 <c:set var="statusChamadoAction" value="${ctx}/admin/status-chamado/${statusEdicao.id}" />
             </c:if>
+            <c:set var="statusEdicaoBloqueada" value="${statusEdicaoBloqueada eq true}" />
 
             <section class="two-column-grid">
                 <article class="card">
@@ -27,10 +28,13 @@
                         <%@ include file="/WEB-INF/jsp/fragments/csrf.jspf" %>
                         <label class="field">
                             <span>Nome do status</span>
-                            <input type="text" name="nome" value="${statusChamadoForm.nome}" placeholder="Em atendimento" maxlength="255" required>
+                            <input type="text" name="nome" value="${statusChamadoForm.nome}" placeholder="Em atendimento" maxlength="255" required ${statusEdicaoBloqueada ? 'disabled' : ''}>
                         </label>
+                        <c:if test="${statusEdicaoBloqueada}">
+                            <p class="helper-text">Os status Finalizado, Atrasado e Solicitado sao reservados e nao podem ser editados.</p>
+                        </c:if>
                         <div class="button-row">
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="btn btn-primary" ${statusEdicaoBloqueada ? 'disabled' : ''}>
                                 <c:choose><c:when test="${not empty statusEdicao}">Salvar status</c:when><c:otherwise>Cadastrar status</c:otherwise></c:choose>
                             </button>
                             <c:if test="${not empty statusEdicao}">
@@ -64,7 +68,12 @@
                                             <span><c:if test="${status.inicialPadrao}">Status inicial padrao</c:if><c:if test="${not status.inicialPadrao}">Disponivel para fluxo operacional</c:if></span>
                                         </div>
                                         <div class="button-row">
-                                            <a href="${ctx}/admin/status-chamado?statusId=${status.id}" class="btn btn-secondary">Editar</a>
+                                            <c:if test="${status.editavel}">
+                                                <a href="${ctx}/admin/status-chamado?statusId=${status.id}" class="btn btn-secondary">Editar</a>
+                                            </c:if>
+                                            <c:if test="${not status.editavel}">
+                                                <span class="btn btn-secondary disabled" aria-disabled="true">Reservado</span>
+                                            </c:if>
                                             <form method="post" action="${ctx}/admin/status-chamado/${status.id}/inicial-padrao" class="inline-form" data-confirm="Definir este status como inicial padrao?">
                                                 <%@ include file="/WEB-INF/jsp/fragments/csrf.jspf" %>
                                                 <button type="submit" class="btn btn-primary" ${status.inicialPadrao ? 'disabled' : ''}>

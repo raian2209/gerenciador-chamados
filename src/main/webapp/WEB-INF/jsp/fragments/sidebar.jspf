@@ -1,5 +1,6 @@
 <aside class="sidebar" data-sidebar>
     <div class="brand-block">
+        <span class="brand-chip">Central de Operacoes</span>
         <a href="${ctx}${currentUserHome}" class="brand-mark">${appName}</a>
         <p>Operacao do condominio em um unico fluxo.</p>
     </div>
@@ -32,3 +33,4 @@
         <strong>${currentUserRoleLabel}</strong>
     </div>
 </aside>
+<button type="button" class="sidebar-backdrop" data-sidebar-backdrop aria-label="Fechar menu"></button>

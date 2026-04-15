@@ -15,6 +15,7 @@
                     <div>
                         <p class="eyebrow">Monitoramento</p>
                         <h2>Fila completa de chamados</h2>
+                        <p class="section-subtitle">Os chamados mais antigos aparecem primeiro na lista.</p>
                     </div>
                 </div>
 
@@ -31,6 +32,10 @@
                     <label class="field">
                         <span>Morador</span>
                         <input type="text" name="moradorNome" value="${filtroMoradorNome}" placeholder="Ex.: mar">
+                    </label>
+                    <label class="field">
+                        <span>Data de abertura</span>
+                        <input type="date" name="dataAbertura" value="${filtroDataAbertura}">
                     </label>
                     <div class="button-row align-end">
                         <button type="submit" class="btn btn-primary">Filtrar</button>
@@ -81,11 +86,11 @@
 
                 <div class="pagination">
                     <c:if test="${chamadosPage.hasPrevious}">
-                        <a class="btn btn-secondary" href="${ctx}/admin/chamados?page=${chamadosPage.page - 1}&size=${chamadosPage.size}&statusId=${filtroStatusId}&moradorNome=${filtroMoradorNome}">Anterior</a>
+                        <a class="btn btn-secondary" href="${ctx}/admin/chamados?page=${chamadosPage.page - 1}&size=${chamadosPage.size}&statusId=${filtroStatusId}&moradorNome=${filtroMoradorNome}&dataAbertura=${filtroDataAbertura}">Anterior</a>
                     </c:if>
                     <span>Pagina ${chamadosPage.page + 1} de ${chamadosPage.totalPages == 0 ? 1 : chamadosPage.totalPages}</span>
                     <c:if test="${chamadosPage.hasNext}">
-                        <a class="btn btn-secondary" href="${ctx}/admin/chamados?page=${chamadosPage.page + 1}&size=${chamadosPage.size}&statusId=${filtroStatusId}&moradorNome=${filtroMoradorNome}">Proxima</a>
+                        <a class="btn btn-secondary" href="${ctx}/admin/chamados?page=${chamadosPage.page + 1}&size=${chamadosPage.size}&statusId=${filtroStatusId}&moradorNome=${filtroMoradorNome}&dataAbertura=${filtroDataAbertura}">Proxima</a>
                     </c:if>
                 </div>
             </section>

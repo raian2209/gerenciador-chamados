@@ -27,6 +27,10 @@
                     <span>Status</span>
                     <strong>${totalStatus}</strong>
                 </article>
+                <article class="stat-card">
+                    <span>Chamados atrasados</span>
+                    <strong>${totalChamadosAtrasados}</strong>
+                </article>
                 <article class="stat-card stat-card-wide">
                     <span>Chamados monitorados</span>
                     <strong>${totalChamados}</strong>

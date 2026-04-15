@@ -15,6 +15,7 @@
                     <div>
                         <p class="eyebrow">Atendimento</p>
                         <h2>Fila de chamados</h2>
+                        <p class="section-subtitle">Os chamados mais antigos ficam no topo para priorizar a fila.</p>
                     </div>
                 </div>
 
@@ -40,6 +41,10 @@
                     <label class="field">
                         <span>Pesquisar unidade</span>
                         <input type="text" name="unidade" value="${filtroUnidade}" placeholder="Ex.: 101">
+                    </label>
+                    <label class="field">
+                        <span>Data de abertura</span>
+                        <input type="date" name="dataAbertura" value="${filtroDataAbertura}">
                     </label>
                     <div class="button-row align-end">
                         <button type="submit" class="btn btn-primary">Filtrar</button>
@@ -90,11 +95,11 @@
 
                 <div class="pagination">
                     <c:if test="${chamadosPage.hasPrevious}">
-                        <a class="btn btn-secondary" href="${ctx}/colaborador/chamados?page=${chamadosPage.page - 1}&size=${chamadosPage.size}&statusId=${filtroStatusId}&tipoChamadoId=${filtroTipoChamadoId}&unidade=${filtroUnidade}">Anterior</a>
+                        <a class="btn btn-secondary" href="${ctx}/colaborador/chamados?page=${chamadosPage.page - 1}&size=${chamadosPage.size}&statusId=${filtroStatusId}&tipoChamadoId=${filtroTipoChamadoId}&unidade=${filtroUnidade}&dataAbertura=${filtroDataAbertura}">Anterior</a>
                     </c:if>
                     <span>Pagina ${chamadosPage.page + 1} de ${chamadosPage.totalPages == 0 ? 1 : chamadosPage.totalPages}</span>
                     <c:if test="${chamadosPage.hasNext}">
-                        <a class="btn btn-secondary" href="${ctx}/colaborador/chamados?page=${chamadosPage.page + 1}&size=${chamadosPage.size}&statusId=${filtroStatusId}&tipoChamadoId=${filtroTipoChamadoId}&unidade=${filtroUnidade}">Proxima</a>
+                        <a class="btn btn-secondary" href="${ctx}/colaborador/chamados?page=${chamadosPage.page + 1}&size=${chamadosPage.size}&statusId=${filtroStatusId}&tipoChamadoId=${filtroTipoChamadoId}&unidade=${filtroUnidade}&dataAbertura=${filtroDataAbertura}">Proxima</a>
                     </c:if>
                 </div>
             </section>

@@ -115,118 +115,257 @@
                     </c:if>
                 </article>
 
-                <article class="card">
-                    <div class="section-header">
-                        <div>
-                            <p class="eyebrow">Pendencias</p>
-                            <h2>Moradores sem unidade</h2>
-                        </div>
-                    </div>
-
-                    <form method="get" action="${ctx}/admin/vinculos-morador" class="stack-form compact-form">
-                        <c:if test="${not empty moradorSelecionadoId}">
-                            <input type="hidden" name="moradorId" value="${moradorSelecionadoId}" />
-                        </c:if>
-                        <c:if test="${not empty blocoSelecionadoId}">
-                            <input type="hidden" name="blocoId" value="${blocoSelecionadoId}" />
-                        </c:if>
-                        <c:if test="${not empty filtroMoradorEmail}">
-                            <input type="hidden" name="moradorEmail" value="${filtroMoradorEmail}" />
-                        </c:if>
-                        <label class="field">
-                            <span>Buscar pendentes por e-mail</span>
-                            <input type="text" name="semUnidadeEmail" value="${filtroSemUnidadeEmail}" placeholder="Ex.: mar" />
-                        </label>
-                        <div class="button-row">
-                            <button type="submit" class="btn btn-primary">Buscar pendentes</button>
-                        </div>
-                    </form>
-
-                    <c:choose>
-                        <c:when test="${empty moradoresSemUnidade}">
-                            <div class="empty-state">
-                                <h3>Nenhum morador pendente</h3>
-                                <p>Todos os moradores desta consulta ja possuem unidade vinculada.</p>
+                <div class="stack-list">
+                    <article class="card">
+                        <div class="section-header">
+                            <div>
+                                <p class="eyebrow">Base cadastrada</p>
+                                <h2>Moradores cadastrados</h2>
                             </div>
-                        </c:when>
-                        <c:otherwise>
-                            <div class="table-wrap">
-                                <table class="data-table" data-filter-table="moradores-sem-unidade-table">
-                                    <thead>
-                                    <tr>
-                                        <th>Nome</th>
-                                        <th>Email</th>
-                                        <th></th>
-                                    </tr>
-                                    </thead>
-                                    <tbody>
-                                    <c:forEach items="${moradoresSemUnidade}" var="morador">
-                                        <c:url var="selecionarMoradorUrl" value="/admin/vinculos-morador">
-                                            <c:param name="moradorId" value="${morador.id}" />
-                                            <c:if test="${not empty filtroMoradorEmail}">
-                                                <c:param name="moradorEmail" value="${filtroMoradorEmail}" />
-                                            </c:if>
-                                            <c:if test="${not empty filtroSemUnidadeEmail}">
-                                                <c:param name="semUnidadeEmail" value="${filtroSemUnidadeEmail}" />
-                                            </c:if>
-                                        </c:url>
+                        </div>
+
+                        <form method="get" action="${ctx}/admin/vinculos-morador" class="stack-form compact-form">
+                            <c:if test="${not empty moradorSelecionadoId}">
+                                <input type="hidden" name="moradorId" value="${moradorSelecionadoId}" />
+                            </c:if>
+                            <c:if test="${not empty blocoSelecionadoId}">
+                                <input type="hidden" name="blocoId" value="${blocoSelecionadoId}" />
+                            </c:if>
+                            <c:if test="${not empty filtroMoradorEmail}">
+                                <input type="hidden" name="moradorEmail" value="${filtroMoradorEmail}" />
+                            </c:if>
+                            <c:if test="${not empty filtroSemUnidadeEmail}">
+                                <input type="hidden" name="semUnidadeEmail" value="${filtroSemUnidadeEmail}" />
+                            </c:if>
+                            <label class="field">
+                                <span>Buscar moradores por e-mail</span>
+                                <input type="text" name="cadastradosEmail" value="${filtroCadastradosEmail}" placeholder="Ex.: mar" />
+                            </label>
+                            <div class="button-row">
+                                <button type="submit" class="btn btn-primary">Buscar moradores</button>
+                            </div>
+                        </form>
+
+                        <c:choose>
+                            <c:when test="${empty moradoresCadastrados}">
+                                <div class="empty-state">
+                                    <h3>Nenhum morador encontrado</h3>
+                                    <p>Refine o filtro para localizar um morador cadastrado.</p>
+                                </div>
+                            </c:when>
+                            <c:otherwise>
+                                <div class="table-wrap">
+                                    <table class="data-table">
+                                        <thead>
                                         <tr>
-                                            <td>${morador.nome}</td>
-                                            <td>${morador.email}</td>
-                                            <td class="cell-actions">
-                                                <a href="${selecionarMoradorUrl}" class="btn btn-link">Selecionar</a>
-                                            </td>
+                                            <th>Nome</th>
+                                            <th>Email</th>
+                                            <th></th>
                                         </tr>
-                                    </c:forEach>
-                                    </tbody>
-                                </table>
+                                        </thead>
+                                        <tbody>
+                                        <c:forEach items="${moradoresCadastrados}" var="morador">
+                                            <c:url var="selecionarMoradorCadastradoUrl" value="/admin/vinculos-morador">
+                                                <c:param name="moradorId" value="${morador.id}" />
+                                                <c:if test="${not empty filtroMoradorEmail}">
+                                                    <c:param name="moradorEmail" value="${filtroMoradorEmail}" />
+                                                </c:if>
+                                                <c:if test="${not empty filtroCadastradosEmail}">
+                                                    <c:param name="cadastradosEmail" value="${filtroCadastradosEmail}" />
+                                                </c:if>
+                                                <c:if test="${not empty filtroSemUnidadeEmail}">
+                                                    <c:param name="semUnidadeEmail" value="${filtroSemUnidadeEmail}" />
+                                                </c:if>
+                                            </c:url>
+                                            <tr>
+                                                <td>${morador.nome}</td>
+                                                <td>${morador.email}</td>
+                                                <td class="cell-actions">
+                                                    <a href="${selecionarMoradorCadastradoUrl}" class="btn btn-link">Selecionar</a>
+                                                </td>
+                                            </tr>
+                                        </c:forEach>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </c:otherwise>
+                        </c:choose>
+
+                        <c:url var="paginaAnteriorCadastradosUrl" value="/admin/vinculos-morador">
+                            <c:param name="cadastradosPage" value="${moradoresCadastradosPage.page - 1}" />
+                            <c:param name="cadastradosSize" value="${moradoresCadastradosPage.size}" />
+                            <c:if test="${not empty moradorSelecionadoId}">
+                                <c:param name="moradorId" value="${moradorSelecionadoId}" />
+                            </c:if>
+                            <c:if test="${not empty blocoSelecionadoId}">
+                                <c:param name="blocoId" value="${blocoSelecionadoId}" />
+                            </c:if>
+                            <c:if test="${not empty filtroMoradorEmail}">
+                                <c:param name="moradorEmail" value="${filtroMoradorEmail}" />
+                            </c:if>
+                            <c:if test="${not empty filtroCadastradosEmail}">
+                                <c:param name="cadastradosEmail" value="${filtroCadastradosEmail}" />
+                            </c:if>
+                            <c:if test="${not empty filtroSemUnidadeEmail}">
+                                <c:param name="semUnidadeEmail" value="${filtroSemUnidadeEmail}" />
+                            </c:if>
+                        </c:url>
+                        <c:url var="proximaPaginaCadastradosUrl" value="/admin/vinculos-morador">
+                            <c:param name="cadastradosPage" value="${moradoresCadastradosPage.page + 1}" />
+                            <c:param name="cadastradosSize" value="${moradoresCadastradosPage.size}" />
+                            <c:if test="${not empty moradorSelecionadoId}">
+                                <c:param name="moradorId" value="${moradorSelecionadoId}" />
+                            </c:if>
+                            <c:if test="${not empty blocoSelecionadoId}">
+                                <c:param name="blocoId" value="${blocoSelecionadoId}" />
+                            </c:if>
+                            <c:if test="${not empty filtroMoradorEmail}">
+                                <c:param name="moradorEmail" value="${filtroMoradorEmail}" />
+                            </c:if>
+                            <c:if test="${not empty filtroCadastradosEmail}">
+                                <c:param name="cadastradosEmail" value="${filtroCadastradosEmail}" />
+                            </c:if>
+                            <c:if test="${not empty filtroSemUnidadeEmail}">
+                                <c:param name="semUnidadeEmail" value="${filtroSemUnidadeEmail}" />
+                            </c:if>
+                        </c:url>
+
+                        <div class="pagination">
+                            <c:if test="${moradoresCadastradosPage.hasPrevious}">
+                                <a class="btn btn-secondary" href="${paginaAnteriorCadastradosUrl}">Anterior</a>
+                            </c:if>
+                            <span>Pagina ${moradoresCadastradosPage.page + 1} de ${moradoresCadastradosPage.totalPages == 0 ? 1 : moradoresCadastradosPage.totalPages}</span>
+                            <c:if test="${moradoresCadastradosPage.hasNext}">
+                                <a class="btn btn-secondary" href="${proximaPaginaCadastradosUrl}">Proxima</a>
+                            </c:if>
+                        </div>
+                    </article>
+
+                    <article class="card">
+                        <div class="section-header">
+                            <div>
+                                <p class="eyebrow">Pendencias</p>
+                                <h2>Moradores sem unidade</h2>
                             </div>
-                        </c:otherwise>
-                    </c:choose>
+                        </div>
 
-                    <c:url var="paginaAnteriorUrl" value="/admin/vinculos-morador">
-                        <c:param name="semUnidadePage" value="${moradoresSemUnidadePage.page - 1}" />
-                        <c:param name="semUnidadeSize" value="${moradoresSemUnidadePage.size}" />
-                        <c:if test="${not empty moradorSelecionadoId}">
-                            <c:param name="moradorId" value="${moradorSelecionadoId}" />
-                        </c:if>
-                        <c:if test="${not empty blocoSelecionadoId}">
-                            <c:param name="blocoId" value="${blocoSelecionadoId}" />
-                        </c:if>
-                        <c:if test="${not empty filtroMoradorEmail}">
-                            <c:param name="moradorEmail" value="${filtroMoradorEmail}" />
-                        </c:if>
-                        <c:if test="${not empty filtroSemUnidadeEmail}">
-                            <c:param name="semUnidadeEmail" value="${filtroSemUnidadeEmail}" />
-                        </c:if>
-                    </c:url>
-                    <c:url var="proximaPaginaUrl" value="/admin/vinculos-morador">
-                        <c:param name="semUnidadePage" value="${moradoresSemUnidadePage.page + 1}" />
-                        <c:param name="semUnidadeSize" value="${moradoresSemUnidadePage.size}" />
-                        <c:if test="${not empty moradorSelecionadoId}">
-                            <c:param name="moradorId" value="${moradorSelecionadoId}" />
-                        </c:if>
-                        <c:if test="${not empty blocoSelecionadoId}">
-                            <c:param name="blocoId" value="${blocoSelecionadoId}" />
-                        </c:if>
-                        <c:if test="${not empty filtroMoradorEmail}">
-                            <c:param name="moradorEmail" value="${filtroMoradorEmail}" />
-                        </c:if>
-                        <c:if test="${not empty filtroSemUnidadeEmail}">
-                            <c:param name="semUnidadeEmail" value="${filtroSemUnidadeEmail}" />
-                        </c:if>
-                    </c:url>
+                        <form method="get" action="${ctx}/admin/vinculos-morador" class="stack-form compact-form">
+                            <c:if test="${not empty moradorSelecionadoId}">
+                                <input type="hidden" name="moradorId" value="${moradorSelecionadoId}" />
+                            </c:if>
+                            <c:if test="${not empty blocoSelecionadoId}">
+                                <input type="hidden" name="blocoId" value="${blocoSelecionadoId}" />
+                            </c:if>
+                            <c:if test="${not empty filtroMoradorEmail}">
+                                <input type="hidden" name="moradorEmail" value="${filtroMoradorEmail}" />
+                            </c:if>
+                            <c:if test="${not empty filtroCadastradosEmail}">
+                                <input type="hidden" name="cadastradosEmail" value="${filtroCadastradosEmail}" />
+                            </c:if>
+                            <label class="field">
+                                <span>Buscar pendentes por e-mail</span>
+                                <input type="text" name="semUnidadeEmail" value="${filtroSemUnidadeEmail}" placeholder="Ex.: mar" />
+                            </label>
+                            <div class="button-row">
+                                <button type="submit" class="btn btn-primary">Buscar pendentes</button>
+                            </div>
+                        </form>
 
-                    <div class="pagination">
-                        <c:if test="${moradoresSemUnidadePage.hasPrevious}">
-                            <a class="btn btn-secondary" href="${paginaAnteriorUrl}">Anterior</a>
-                        </c:if>
-                        <span>Pagina ${moradoresSemUnidadePage.page + 1} de ${moradoresSemUnidadePage.totalPages == 0 ? 1 : moradoresSemUnidadePage.totalPages}</span>
-                        <c:if test="${moradoresSemUnidadePage.hasNext}">
-                            <a class="btn btn-secondary" href="${proximaPaginaUrl}">Proxima</a>
-                        </c:if>
-                    </div>
-                </article>
+                        <c:choose>
+                            <c:when test="${empty moradoresSemUnidade}">
+                                <div class="empty-state">
+                                    <h3>Nenhum morador pendente</h3>
+                                    <p>Todos os moradores desta consulta ja possuem unidade vinculada.</p>
+                                </div>
+                            </c:when>
+                            <c:otherwise>
+                                <div class="table-wrap">
+                                    <table class="data-table" data-filter-table="moradores-sem-unidade-table">
+                                        <thead>
+                                        <tr>
+                                            <th>Nome</th>
+                                            <th>Email</th>
+                                            <th></th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        <c:forEach items="${moradoresSemUnidade}" var="morador">
+                                            <c:url var="selecionarMoradorUrl" value="/admin/vinculos-morador">
+                                                <c:param name="moradorId" value="${morador.id}" />
+                                                <c:if test="${not empty filtroMoradorEmail}">
+                                                    <c:param name="moradorEmail" value="${filtroMoradorEmail}" />
+                                                </c:if>
+                                                <c:if test="${not empty filtroCadastradosEmail}">
+                                                    <c:param name="cadastradosEmail" value="${filtroCadastradosEmail}" />
+                                                </c:if>
+                                                <c:if test="${not empty filtroSemUnidadeEmail}">
+                                                    <c:param name="semUnidadeEmail" value="${filtroSemUnidadeEmail}" />
+                                                </c:if>
+                                            </c:url>
+                                            <tr>
+                                                <td>${morador.nome}</td>
+                                                <td>${morador.email}</td>
+                                                <td class="cell-actions">
+                                                    <a href="${selecionarMoradorUrl}" class="btn btn-link">Selecionar</a>
+                                                </td>
+                                            </tr>
+                                        </c:forEach>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </c:otherwise>
+                        </c:choose>
+
+                        <c:url var="paginaAnteriorUrl" value="/admin/vinculos-morador">
+                            <c:param name="semUnidadePage" value="${moradoresSemUnidadePage.page - 1}" />
+                            <c:param name="semUnidadeSize" value="${moradoresSemUnidadePage.size}" />
+                            <c:if test="${not empty moradorSelecionadoId}">
+                                <c:param name="moradorId" value="${moradorSelecionadoId}" />
+                            </c:if>
+                            <c:if test="${not empty blocoSelecionadoId}">
+                                <c:param name="blocoId" value="${blocoSelecionadoId}" />
+                            </c:if>
+                            <c:if test="${not empty filtroMoradorEmail}">
+                                <c:param name="moradorEmail" value="${filtroMoradorEmail}" />
+                            </c:if>
+                            <c:if test="${not empty filtroCadastradosEmail}">
+                                <c:param name="cadastradosEmail" value="${filtroCadastradosEmail}" />
+                            </c:if>
+                            <c:if test="${not empty filtroSemUnidadeEmail}">
+                                <c:param name="semUnidadeEmail" value="${filtroSemUnidadeEmail}" />
+                            </c:if>
+                        </c:url>
+                        <c:url var="proximaPaginaUrl" value="/admin/vinculos-morador">
+                            <c:param name="semUnidadePage" value="${moradoresSemUnidadePage.page + 1}" />
+                            <c:param name="semUnidadeSize" value="${moradoresSemUnidadePage.size}" />
+                            <c:if test="${not empty moradorSelecionadoId}">
+                                <c:param name="moradorId" value="${moradorSelecionadoId}" />
+                            </c:if>
+                            <c:if test="${not empty blocoSelecionadoId}">
+                                <c:param name="blocoId" value="${blocoSelecionadoId}" />
+                            </c:if>
+                            <c:if test="${not empty filtroMoradorEmail}">
+                                <c:param name="moradorEmail" value="${filtroMoradorEmail}" />
+                            </c:if>
+                            <c:if test="${not empty filtroCadastradosEmail}">
+                                <c:param name="cadastradosEmail" value="${filtroCadastradosEmail}" />
+                            </c:if>
+                            <c:if test="${not empty filtroSemUnidadeEmail}">
+                                <c:param name="semUnidadeEmail" value="${filtroSemUnidadeEmail}" />
+                            </c:if>
+                        </c:url>
+
+                        <div class="pagination">
+                            <c:if test="${moradoresSemUnidadePage.hasPrevious}">
+                                <a class="btn btn-secondary" href="${paginaAnteriorUrl}">Anterior</a>
+                            </c:if>
+                            <span>Pagina ${moradoresSemUnidadePage.page + 1} de ${moradoresSemUnidadePage.totalPages == 0 ? 1 : moradoresSemUnidadePage.totalPages}</span>
+                            <c:if test="${moradoresSemUnidadePage.hasNext}">
+                                <a class="btn btn-secondary" href="${proximaPaginaUrl}">Proxima</a>
+                            </c:if>
+                        </div>
+                    </article>
+                </div>
             </section>
         </main>
     </div>

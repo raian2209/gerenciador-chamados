@@ -42,6 +42,7 @@
                                 <tr>
                                     <th>Identificacao</th>
                                     <th>Andar</th>
+                                    <th>Moradores vinculados</th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -49,6 +50,23 @@
                                     <tr>
                                         <td>${unidade.identificacao}</td>
                                         <td>${unidade.andar}</td>
+                                        <td>
+                                            <c:choose>
+                                                <c:when test="${empty unidade.moradores}">
+                                                    <span class="status-pill neutral">Sem moradores</span>
+                                                </c:when>
+                                                <c:otherwise>
+                                                    <div class="stack-list">
+                                                        <c:forEach items="${unidade.moradores}" var="morador">
+                                                            <div>
+                                                                <strong>${morador.nome}</strong>
+                                                                <span>${morador.email}</span>
+                                                            </div>
+                                                        </c:forEach>
+                                                    </div>
+                                                </c:otherwise>
+                                            </c:choose>
+                                        </td>
                                     </tr>
                                 </c:forEach>
                                 </tbody>
