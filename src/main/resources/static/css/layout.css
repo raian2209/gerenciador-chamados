@@ -1,8 +1,8 @@
 .auth-layout {
     display: grid;
     grid-template-columns: 1.1fr 0.9fr;
-    gap: 28px;
-    width: min(1100px, 100%);
+    gap: 32px;
+    width: min(1140px, 100%);
     align-items: stretch;
 }
 
@@ -18,6 +18,16 @@
     color: #f8fbfb;
     position: relative;
     overflow: hidden;
+}
+
+.auth-brand::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+            linear-gradient(135deg, rgba(255, 255, 255, 0.06), transparent 46%),
+            repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0 2px, transparent 2px 16px);
+    pointer-events: none;
 }
 
 .auth-brand::after {
@@ -39,6 +49,7 @@
     display: grid;
     grid-template-columns: 280px 1fr;
     min-height: 100vh;
+    position: relative;
 }
 
 .sidebar {
@@ -53,6 +64,19 @@
     display: flex;
     flex-direction: column;
     gap: 28px;
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 18px 0 44px rgba(9, 20, 30, 0.12);
+    overflow: hidden;
+}
+
+.sidebar::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+            radial-gradient(circle at top left, rgba(219, 162, 74, 0.14), transparent 28%),
+            linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.03));
+    pointer-events: none;
 }
 
 .brand-block {
@@ -60,10 +84,24 @@
     gap: 8px;
 }
 
+.brand-chip {
+    display: inline-flex;
+    width: fit-content;
+    padding: 7px 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(238, 246, 245, 0.82);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
 .brand-mark {
     font-family: var(--font-serif);
-    font-size: 1.45rem;
+    font-size: 1.52rem;
     font-weight: 700;
+    line-height: 1.1;
 }
 
 .sidebar .brand-block p,
@@ -79,24 +117,44 @@
 .nav-link {
     padding: 14px 16px;
     border-radius: 14px;
-    transition: background-color 0.2s ease, transform 0.2s ease;
+    border: 1px solid transparent;
+    background: rgba(255, 255, 255, 0.03);
+    transition: background-color 0.2s ease, transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .nav-link:hover,
 .nav-link:focus-visible {
     background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.1);
     transform: translateX(4px);
+}
+
+.nav-link.is-active,
+.nav-link[aria-current="page"] {
+    background: linear-gradient(135deg, rgba(219, 162, 74, 0.22), rgba(255, 255, 255, 0.1));
+    border-color: rgba(219, 162, 74, 0.28);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .sidebar-footer {
     margin-top: auto;
     display: grid;
     gap: 4px;
+    padding-top: 18px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sidebar-backdrop {
+    display: none;
 }
 
 .app-main {
     display: grid;
     grid-template-rows: auto 1fr;
+    position: relative;
+    background:
+            linear-gradient(180deg, rgba(255, 255, 255, 0.2), transparent 24%),
+            radial-gradient(circle at top, rgba(255, 255, 255, 0.2), transparent 32%);
 }
 
 .topbar {
@@ -104,7 +162,16 @@
     justify-content: space-between;
     align-items: center;
     gap: 20px;
-    padding: 28px 32px 12px;
+    position: sticky;
+    top: 16px;
+    z-index: 12;
+    margin: 18px 32px 0;
+    padding: 20px 24px;
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid rgba(255, 255, 255, 0.72);
+    box-shadow: var(--shadow-soft);
+    backdrop-filter: blur(16px);
 }
 
 .topbar-actions {
@@ -113,10 +180,22 @@
     gap: 12px;
 }
 
+.topbar-meta {
+    margin: 8px 0 0;
+    max-width: 52ch;
+    color: var(--muted);
+}
+
 .page-content {
-    padding: 20px 32px 32px;
+    padding: 24px 32px 40px;
     display: grid;
     gap: 24px;
+    align-content: start;
+}
+
+.page-content > * {
+    width: min(100%, 1360px);
+    margin-inline: auto;
 }
 
 .hero-metrics {
@@ -196,7 +275,7 @@
     top: 4px;
     bottom: 4px;
     width: 2px;
-    background: rgba(13, 92, 99, 0.14);
+    background: linear-gradient(180deg, rgba(13, 92, 99, 0.2), rgba(219, 162, 74, 0.24));
 }
 
 .timeline-item {
@@ -230,4 +309,6 @@
     gap: 16px;
     margin-top: 18px;
     flex-wrap: wrap;
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
 }
