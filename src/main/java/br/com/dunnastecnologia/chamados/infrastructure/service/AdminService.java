@@ -25,6 +25,11 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -102,6 +107,21 @@ public class AdminService implements AdminUseCases {
     @Override
     public PageResult<Unidade> listarUnidadesDoBloco(UUID blocoId, PageRequest pageRequest) {
         return PageResultMapper.fromPage(unidadeRepository.findByBlocoId(blocoId, pageRequest));
+    }
+
+    @Override
+    public Map<UUID, List<Morador>> listarMoradoresPorUnidadeIds(List<UUID> unidadeIds) {
+        if (unidadeIds == null || unidadeIds.isEmpty()) {
+            return Map.of();
+        }
+
+        Map<UUID, List<Morador>> moradoresPorUnidade = new LinkedHashMap<>();
+        for (Object[] row : moradorRepository.findActiveByUnidadeIds(unidadeIds)) {
+            UUID unidadeId = (UUID) row[0];
+            Morador morador = (Morador) row[1];
+            moradoresPorUnidade.computeIfAbsent(unidadeId, ignored -> new ArrayList<>()).add(morador);
+        }
+        return moradoresPorUnidade;
     }
 
     @Override
@@ -261,8 +281,14 @@ public class AdminService implements AdminUseCases {
     }
 
     @Override
-    public PageResult<Chamado> buscarChamados(AuthenticatedUser admin, UUID statusId, String moradorNome, PageRequest pageRequest) {
-        return chamadoService.listarChamadosParaAdmin(admin, statusId, moradorNome, pageRequest);
+    public PageResult<Chamado> buscarChamados(
+            AuthenticatedUser admin,
+            UUID statusId,
+            String moradorNome,
+            LocalDate dataAbertura,
+            PageRequest pageRequest
+    ) {
+        return chamadoService.listarChamadosParaAdmin(admin, statusId, moradorNome, dataAbertura, pageRequest);
     }
 
     @Override

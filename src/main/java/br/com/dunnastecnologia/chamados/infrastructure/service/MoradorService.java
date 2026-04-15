@@ -13,6 +13,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Service
@@ -49,8 +50,15 @@ public class MoradorService implements MoradorUseCases {
     }
 
     @Override
-    public PageResult<Chamado> listarMeusChamados(AuthenticatedUser morador, PageRequest pageRequest) {
-        return chamadoService.listarChamadosDoMorador(morador, pageRequest);
+    public PageResult<Chamado> listarMeusChamados(
+            AuthenticatedUser morador,
+            UUID statusId,
+            UUID unidadeId,
+            UUID tipoChamadoId,
+            LocalDate dataAbertura,
+            PageRequest pageRequest
+    ) {
+        return chamadoService.listarChamadosDoMorador(morador, statusId, unidadeId, tipoChamadoId, dataAbertura, pageRequest);
     }
 
     @Override

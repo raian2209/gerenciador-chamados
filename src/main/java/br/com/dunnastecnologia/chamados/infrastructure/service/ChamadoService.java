@@ -23,6 +23,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -96,10 +97,13 @@ public class ChamadoService implements ChamadoUseCase {
             AuthenticatedUser admin,
             UUID statusId,
             String moradorNome,
+            LocalDate dataAbertura,
             PageRequest pageRequest
     ) {
         authenticatedUserValidator.assertAdministrador(admin);
-        return PageResultMapper.fromPage(chamadoRepository.buscarParaAdmin(admin.id(), statusId, moradorNome, pageRequest));
+        return PageResultMapper.fromPage(
+                chamadoRepository.buscarParaAdmin(admin.id(), statusId, moradorNome, dataAbertura, pageRequest)
+        );
     }
 
     @Override
@@ -108,6 +112,7 @@ public class ChamadoService implements ChamadoUseCase {
             UUID statusId,
             UUID tipoChamadoId,
             String unidadeIdentificacao,
+            LocalDate dataAbertura,
             PageRequest pageRequest
     ) {
         authenticatedUserValidator.assertColaborador(colaborador);
@@ -117,15 +122,32 @@ public class ChamadoService implements ChamadoUseCase {
                         statusId,
                         tipoChamadoId,
                         unidadeIdentificacao,
+                        dataAbertura,
                         pageRequest
                 )
         );
     }
 
     @Override
-    public PageResult<Chamado> listarChamadosDoMorador(AuthenticatedUser morador, PageRequest pageRequest) {
+    public PageResult<Chamado> listarChamadosDoMorador(
+            AuthenticatedUser morador,
+            UUID statusId,
+            UUID unidadeId,
+            UUID tipoChamadoId,
+            LocalDate dataAbertura,
+            PageRequest pageRequest
+    ) {
         authenticatedUserValidator.assertMorador(morador);
-        return PageResultMapper.fromPage(chamadoRepository.findByMoradorId(morador.id(), pageRequest));
+        return PageResultMapper.fromPage(
+                chamadoRepository.buscarParaMorador(
+                        morador.id(),
+                        statusId,
+                        unidadeId,
+                        tipoChamadoId,
+                        dataAbertura,
+                        pageRequest
+                )
+        );
     }
 
     @Override

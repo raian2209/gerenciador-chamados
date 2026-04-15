@@ -15,6 +15,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Service
@@ -59,6 +60,7 @@ public class ColaboradorService implements ColaboradorUseCases {
             UUID statusId,
             UUID tipoChamadoId,
             String unidadeIdentificacao,
+            LocalDate dataAbertura,
             PageRequest pageRequest
     ) {
         return chamadoService.listarChamadosParaColaborador(
@@ -66,6 +68,7 @@ public class ColaboradorService implements ColaboradorUseCases {
                 statusId,
                 tipoChamadoId,
                 unidadeIdentificacao,
+                dataAbertura,
                 pageRequest
         );
     }

@@ -15,11 +15,14 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Set;
 import java.util.UUID;
 
 @Service
 @Transactional(readOnly = true)
 public class StatusChamadoService implements StatusChamadoUseCase {
+
+    private static final Set<String> STATUS_RESERVADOS = Set.of("Finalizado", "Atrasado", "Solicitado");
 
     private final StatusChamadoRepository statusChamadoRepository;
     private final AuthenticatedUserValidator authenticatedUserValidator;
@@ -67,6 +70,9 @@ public class StatusChamadoService implements StatusChamadoUseCase {
         String nomeNormalizado = validateNome(nome);
 
         StatusChamado status = buscarStatusPorId(statusId);
+        if (isStatusReservado(status.getNome())) {
+            throw new BusinessRuleException("Nao e permitido editar os status reservados do sistema");
+        }
         statusChamadoRepository.findByNome(nomeNormalizado)
                 .filter(existing -> !existing.getId().equals(statusId))
                 .ifPresent(existing -> {
@@ -95,5 +101,12 @@ public class StatusChamadoService implements StatusChamadoUseCase {
                 "Nome do status deve ter no maximo 255 caracteres",
                 ValidationLimits.STATUS_CHAMADO_NOME_MAX_LENGTH
         );
+    }
+
+    private boolean isStatusReservado(String nome) {
+        if (nome == null) {
+            return false;
+        }
+        return STATUS_RESERVADOS.stream().anyMatch(reservado -> reservado.equalsIgnoreCase(nome));
     }
 }
