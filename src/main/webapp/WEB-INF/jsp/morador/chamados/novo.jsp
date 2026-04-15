@@ -18,7 +18,7 @@
                     </div>
                 </div>
 
-                <form method="post" action="${ctx}/morador/chamados" class="stack-form">
+                <form method="post" action="${ctx}/morador/chamados" enctype="multipart/form-data" class="stack-form">
                     <%@ include file="/WEB-INF/jsp/fragments/csrf.jspf" %>
                     <label class="field">
                         <span>Unidade</span>
@@ -44,8 +44,13 @@
                     </label>
                     <label class="field">
                         <span>Descricao</span>
-                        <textarea name="descricao" rows="6" required data-character-count>${abrirChamadoForm.descricao}</textarea>
+                        <textarea name="descricao" rows="6" maxlength="255" required data-character-count>${abrirChamadoForm.descricao}</textarea>
                         <small class="field-hint" data-character-output>0 caracteres</small>
+                    </label>
+                    <label class="field">
+                        <span>Anexo inicial</span>
+                        <input type="file" name="arquivo">
+                        <small class="field-hint">Opcional. Se enviado, sera anexado logo na abertura do chamado. Tamanho maximo: 5 MB.</small>
                     </label>
                     <div class="button-row">
                         <button type="submit" class="btn btn-primary">Registrar chamado</button>

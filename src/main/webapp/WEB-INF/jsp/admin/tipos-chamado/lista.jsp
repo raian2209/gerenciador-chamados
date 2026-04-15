@@ -27,7 +27,7 @@
                         <%@ include file="/WEB-INF/jsp/fragments/csrf.jspf" %>
                         <label class="field">
                             <span>Titulo</span>
-                            <input type="text" name="titulo" value="${tipoChamadoForm.titulo}" placeholder="Vazamento" required>
+                            <input type="text" name="titulo" value="${tipoChamadoForm.titulo}" placeholder="Vazamento" maxlength="255" required>
                         </label>
                         <label class="field">
                             <span>Prazo maximo em horas</span>

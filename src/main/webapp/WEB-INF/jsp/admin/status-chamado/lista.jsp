@@ -27,7 +27,7 @@
                         <%@ include file="/WEB-INF/jsp/fragments/csrf.jspf" %>
                         <label class="field">
                             <span>Nome do status</span>
-                            <input type="text" name="nome" value="${statusChamadoForm.nome}" placeholder="Em atendimento" required>
+                            <input type="text" name="nome" value="${statusChamadoForm.nome}" placeholder="Em atendimento" maxlength="255" required>
                         </label>
                         <div class="button-row">
                             <button type="submit" class="btn btn-primary">

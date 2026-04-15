@@ -47,11 +47,6 @@
                             </label>
                             <button type="submit" class="btn btn-primary">Salvar status</button>
                         </form>
-
-                        <form method="post" action="${ctx}/colaborador/chamados/${chamado.id}/finalizar" class="inline-form" data-confirm="Finalizar este chamado?">
-                            <%@ include file="/WEB-INF/jsp/fragments/csrf.jspf" %>
-                            <button type="submit" class="btn btn-danger">Finalizar chamado</button>
-                        </form>
                     </c:if>
                 </article>
 
@@ -63,15 +58,27 @@
                         </div>
                     </div>
 
-                    <form method="post" action="${ctx}/colaborador/chamados/${chamado.id}/comentarios" class="stack-form">
-                        <%@ include file="/WEB-INF/jsp/fragments/csrf.jspf" %>
-                        <label class="field">
-                            <span>Novo comentario</span>
-                            <textarea name="mensagem" rows="4" required data-character-count></textarea>
-                            <small class="field-hint" data-character-output>0 caracteres</small>
-                        </label>
-                        <button type="submit" class="btn btn-primary">Adicionar comentario</button>
-                    </form>
+                    <c:if test="${not chamado.finalizado}">
+                        <form method="post" action="${ctx}/colaborador/chamados/${chamado.id}/comentarios" enctype="multipart/form-data" class="stack-form">
+                            <%@ include file="/WEB-INF/jsp/fragments/csrf.jspf" %>
+                            <label class="field">
+                                <span>Novo comentario</span>
+                                <textarea name="mensagem" rows="4" maxlength="255" required data-character-count></textarea>
+                                <small class="field-hint" data-character-output>0 caracteres</small>
+                            </label>
+                            <label class="field">
+                                <span>Anexo do comentario</span>
+                                <input type="file" name="arquivo">
+                                <small class="field-hint">Opcional. O arquivo fica vinculado a este comentario do colaborador. Tamanho maximo: 5 MB.</small>
+                            </label>
+                            <button type="submit" class="btn btn-primary">Adicionar comentario</button>
+                        </form>
+                    </c:if>
+                    <c:if test="${chamado.finalizado}">
+                        <div class="empty-state compact">
+                            <p>Chamados finalizados ficam bloqueados para novos comentarios.</p>
+                        </div>
+                    </c:if>
 
                     <c:choose>
                         <c:when test="${empty comentarios}">
@@ -88,6 +95,19 @@
                                             <span>${comentario.autorRole} • ${comentario.dataCriacaoFormatada}</span>
                                         </header>
                                         <p>${comentario.mensagem}</p>
+                                        <c:if test="${not empty comentario.anexos}">
+                                            <div class="stack-list">
+                                                <c:forEach items="${comentario.anexos}" var="anexoComentario">
+                                                    <div class="list-row">
+                                                        <div>
+                                                            <strong>${anexoComentario.nomeArquivo}</strong>
+                                                            <span>${anexoComentario.contentType} • ${anexoComentario.tamanhoFormatado}</span>
+                                                        </div>
+                                                        <a href="${ctx}/colaborador/chamados/${chamado.id}/comentarios/${comentario.id}/anexos/${anexoComentario.id}" class="btn btn-secondary">Baixar anexo</a>
+                                                    </div>
+                                                </c:forEach>
+                                            </div>
+                                        </c:if>
                                     </article>
                                 </c:forEach>
                             </div>

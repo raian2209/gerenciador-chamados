@@ -22,7 +22,7 @@
                         <%@ include file="/WEB-INF/jsp/fragments/csrf.jspf" %>
                         <label class="field">
                             <span>Identificacao</span>
-                            <input type="text" name="identificacao" value="${blocoForm.identificacao}" placeholder="Bloco A" required>
+                            <input type="text" name="identificacao" value="${blocoForm.identificacao}" placeholder="Bloco A" maxlength="255" required>
                         </label>
                         <div class="form-grid">
                             <label class="field">

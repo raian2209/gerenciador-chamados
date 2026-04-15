@@ -29,6 +29,13 @@
                         <span>Descricao</span>
                         <p>${chamado.descricao}</p>
                     </div>
+
+                    <c:if test="${chamado.finalizado}">
+                        <form method="post" action="${ctx}/morador/chamados/${chamado.id}/reabrir" class="inline-form" data-confirm="Reabrir este chamado?">
+                            <%@ include file="/WEB-INF/jsp/fragments/csrf.jspf" %>
+                            <button type="submit" class="btn btn-primary">Reabrir chamado</button>
+                        </form>
+                    </c:if>
                 </article>
 
                 <article class="card">
@@ -39,15 +46,27 @@
                         </div>
                     </div>
 
-                    <form method="post" action="${ctx}/morador/chamados/${chamado.id}/comentarios" class="stack-form">
-                        <%@ include file="/WEB-INF/jsp/fragments/csrf.jspf" %>
-                        <label class="field">
-                            <span>Adicionar comentario</span>
-                            <textarea name="mensagem" rows="4" required data-character-count></textarea>
-                            <small class="field-hint" data-character-output>0 caracteres</small>
-                        </label>
-                        <button type="submit" class="btn btn-primary">Comentar</button>
-                    </form>
+                    <c:if test="${not chamado.finalizado}">
+                        <form method="post" action="${ctx}/morador/chamados/${chamado.id}/comentarios" enctype="multipart/form-data" class="stack-form">
+                            <%@ include file="/WEB-INF/jsp/fragments/csrf.jspf" %>
+                            <label class="field">
+                                <span>Adicionar comentario</span>
+                                <textarea name="mensagem" rows="4" maxlength="255" required data-character-count></textarea>
+                                <small class="field-hint" data-character-output>0 caracteres</small>
+                            </label>
+                            <label class="field">
+                                <span>Anexo do comentario</span>
+                                <input type="file" name="arquivo">
+                                <small class="field-hint">Opcional. Disponivel apenas no comentario enviado pelo morador. Tamanho maximo: 5 MB.</small>
+                            </label>
+                            <button type="submit" class="btn btn-primary">Comentar</button>
+                        </form>
+                    </c:if>
+                    <c:if test="${chamado.finalizado}">
+                        <div class="empty-state compact">
+                            <p>Chamados finalizados ficam bloqueados para novos comentarios ate serem reabertos.</p>
+                        </div>
+                    </c:if>
 
                     <c:choose>
                         <c:when test="${empty comentarios}">
@@ -64,6 +83,19 @@
                                             <span>${comentario.autorRole} • ${comentario.dataCriacaoFormatada}</span>
                                         </header>
                                         <p>${comentario.mensagem}</p>
+                                        <c:if test="${not empty comentario.anexos}">
+                                            <div class="stack-list">
+                                                <c:forEach items="${comentario.anexos}" var="anexoComentario">
+                                                    <div class="list-row">
+                                                        <div>
+                                                            <strong>${anexoComentario.nomeArquivo}</strong>
+                                                            <span>${anexoComentario.contentType} • ${anexoComentario.tamanhoFormatado}</span>
+                                                        </div>
+                                                        <a href="${ctx}/morador/chamados/${chamado.id}/comentarios/${comentario.id}/anexos/${anexoComentario.id}" class="btn btn-secondary">Baixar anexo</a>
+                                                    </div>
+                                                </c:forEach>
+                                            </div>
+                                        </c:if>
                                     </article>
                                 </c:forEach>
                             </div>
@@ -79,14 +111,22 @@
                         </div>
                     </div>
 
-                    <form method="post" action="${ctx}/morador/chamados/${chamado.id}/anexos" enctype="multipart/form-data" class="stack-form">
-                        <%@ include file="/WEB-INF/jsp/fragments/csrf.jspf" %>
-                        <label class="field">
-                            <span>Adicionar arquivo</span>
-                            <input type="file" name="arquivo" required>
-                        </label>
-                        <button type="submit" class="btn btn-primary">Enviar anexo</button>
-                    </form>
+                    <c:if test="${not chamado.finalizado}">
+                        <form method="post" action="${ctx}/morador/chamados/${chamado.id}/anexos" enctype="multipart/form-data" class="stack-form">
+                            <%@ include file="/WEB-INF/jsp/fragments/csrf.jspf" %>
+                            <label class="field">
+                                <span>Adicionar arquivo</span>
+                                <input type="file" name="arquivo" required>
+                            </label>
+                            <small class="field-hint">Tamanho maximo: 5 MB.</small>
+                            <button type="submit" class="btn btn-primary">Enviar anexo</button>
+                        </form>
+                    </c:if>
+                    <c:if test="${chamado.finalizado}">
+                        <div class="empty-state compact">
+                            <p>Chamados finalizados nao aceitam novos anexos ate serem reabertos.</p>
+                        </div>
+                    </c:if>
 
                     <c:choose>
                         <c:when test="${empty anexos}">

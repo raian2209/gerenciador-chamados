@@ -24,11 +24,11 @@
                         <%@ include file="/WEB-INF/jsp/fragments/csrf.jspf" %>
                         <label class="field">
                             <span>Nome</span>
-                            <input type="text" name="nome" value="${usuarioForm.nome}" required>
+                            <input type="text" name="nome" value="${usuarioForm.nome}" maxlength="255" required>
                         </label>
                         <label class="field">
                             <span>Email</span>
-                            <input type="email" name="email" value="${usuarioForm.email}" required>
+                            <input type="email" name="email" value="${usuarioForm.email}" maxlength="255" required>
                         </label>
                         <label class="field">
                             <span>Perfil</span>
@@ -38,7 +38,7 @@
                         <label class="field">
                             <span>Nova senha</span>
                             <div class="password-field">
-                                <input type="password" name="senha" placeholder="Obrigatorio para salvar" required data-password-input>
+                                <input type="password" name="senha" placeholder="Obrigatorio para salvar" maxlength="255" required data-password-input>
                                 <button type="button" class="ghost-button" data-password-toggle>Mostrar</button>
                             </div>
                         </label>
