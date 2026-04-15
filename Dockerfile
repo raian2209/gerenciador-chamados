@@ -22,4 +22,4 @@ COPY --from=build /app/target/*.war app.war
 
 EXPOSE 8080
 
-ENTRYPOINT ["java","-jar","app.war"]
+ENTRYPOINT ["sh","-c","exec java -Duser.timezone=\"${APP_TIMEZONE:-${TZ:-UTC}}\" -jar app.war"]
