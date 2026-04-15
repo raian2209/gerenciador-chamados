@@ -8,6 +8,7 @@ import br.com.dunnastecnologia.chamados.domain.model.StatusChamado;
 import br.com.dunnastecnologia.chamados.domain.model.TipoChamado;
 import org.springframework.data.domain.PageRequest;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 public interface ColaboradorUseCases {
@@ -37,6 +38,7 @@ public interface ColaboradorUseCases {
             UUID statusId,
             UUID tipoChamadoId,
             String unidadeIdentificacao,
+            LocalDate dataAbertura,
             PageRequest pageRequest
     );
 

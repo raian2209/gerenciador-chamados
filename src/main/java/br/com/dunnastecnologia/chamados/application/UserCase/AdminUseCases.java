@@ -13,6 +13,9 @@ import br.com.dunnastecnologia.chamados.domain.model.Unidade;
 import br.com.dunnastecnologia.chamados.domain.model.Usuario;
 import org.springframework.data.domain.PageRequest;
 
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public interface AdminUseCases {
@@ -46,6 +49,12 @@ public interface AdminUseCases {
             UUID blocoId,
             PageRequest pageRequest
     );
+
+    /**
+     * Existe para permitir ao administrador visualizar rapidamente quais moradores
+     * estao vinculados a cada unidade dentro de um bloco.
+     */
+    Map<UUID, List<Morador>> listarMoradoresPorUnidadeIds(List<UUID> unidadeIds);
 
     /**
      * Existe para detalhar uma unidade especifica antes de vincular moradores
@@ -253,6 +262,7 @@ public interface AdminUseCases {
             AuthenticatedUser admin,
             UUID statusId,
             String moradorNome,
+            LocalDate dataAbertura,
             PageRequest pageRequest
     );
 

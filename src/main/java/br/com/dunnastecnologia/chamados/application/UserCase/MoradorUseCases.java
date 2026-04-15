@@ -7,6 +7,7 @@ import br.com.dunnastecnologia.chamados.domain.model.Comentario;
 import br.com.dunnastecnologia.chamados.domain.model.Unidade;
 import org.springframework.data.domain.PageRequest;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 public interface MoradorUseCases {
@@ -36,6 +37,10 @@ public interface MoradorUseCases {
      */
     PageResult<Chamado> listarMeusChamados(
             AuthenticatedUser morador,
+            UUID statusId,
+            UUID unidadeId,
+            UUID tipoChamadoId,
+            LocalDate dataAbertura,
             PageRequest pageRequest
     );
 

@@ -5,6 +5,7 @@ import br.com.dunnastecnologia.chamados.application.pagination.PageResult;
 import br.com.dunnastecnologia.chamados.domain.model.Chamado;
 import org.springframework.data.domain.PageRequest;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 public interface ChamadoUseCase {
@@ -20,6 +21,7 @@ public interface ChamadoUseCase {
             AuthenticatedUser admin,
             UUID statusId,
             String moradorNome,
+            LocalDate dataAbertura,
             PageRequest pageRequest
     );
 
@@ -28,11 +30,16 @@ public interface ChamadoUseCase {
             UUID statusId,
             UUID tipoChamadoId,
             String unidadeIdentificacao,
+            LocalDate dataAbertura,
             PageRequest pageRequest
     );
 
     PageResult<Chamado> listarChamadosDoMorador(
             AuthenticatedUser morador,
+            UUID statusId,
+            UUID unidadeId,
+            UUID tipoChamadoId,
+            LocalDate dataAbertura,
             PageRequest pageRequest
     );
 
