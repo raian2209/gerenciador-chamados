@@ -13,6 +13,7 @@ import br.com.dunnastecnologia.chamados.infrastructure.repository.StatusChamadoR
 import br.com.dunnastecnologia.chamados.infrastructure.repository.TipoChamadoRepository;
 import br.com.dunnastecnologia.chamados.infrastructure.repository.UnidadeRepository;
 import br.com.dunnastecnologia.chamados.infrastructure.service.support.AuthenticatedUserValidator;
+import br.com.dunnastecnologia.chamados.domain.validation.ValidationLimits;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -25,6 +26,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -102,6 +104,22 @@ class ChamadoServiceTest {
     }
 
     @Test
+    void abrirChamadoDeveFalharQuandoDescricaoExcederLimite() {
+        UUID moradorId = UUID.randomUUID();
+        AuthenticatedUser moradorAutenticado = new AuthenticatedUser(moradorId, "morador@cond.local", "ROLE_MORADOR");
+
+        assertThrows(
+                BusinessRuleException.class,
+                () -> chamadoService.abrirChamado(
+                        moradorAutenticado,
+                        UUID.randomUUID(),
+                        UUID.randomUUID(),
+                        "a".repeat(ValidationLimits.CHAMADO_DESCRICAO_MAX_LENGTH + 1)
+                )
+        );
+    }
+
+    @Test
     void finalizarComoColaboradorDeveAplicarStatusFinalizadoEDataFinalizacao() {
         UUID colaboradorId = UUID.randomUUID();
         UUID chamadoId = UUID.randomUUID();
@@ -122,5 +140,104 @@ class ChamadoServiceTest {
         assertEquals(statusFinalizado, chamadoFinalizado.getStatus());
         assertNotNull(chamadoFinalizado.getDataFinalizacao());
         assertTrue(chamadoFinalizado.getDataFinalizacao().isBefore(LocalDateTime.now().plusSeconds(1)));
+    }
+
+    @Test
+    void atualizarStatusComoAdminDeveDefinirDataFinalizacaoQuandoNovoStatusForFinalizado() {
+        UUID adminId = UUID.randomUUID();
+        UUID chamadoId = UUID.randomUUID();
+        UUID statusId = UUID.randomUUID();
+        AuthenticatedUser admin = new AuthenticatedUser(adminId, "admin@cond.local", "ROLE_ADMINISTRADOR");
+
+        Chamado chamado = new Chamado();
+        chamado.setId(chamadoId);
+        chamado.setDataFinalizacao(null);
+
+        StatusChamado statusFinalizado = new StatusChamado();
+        statusFinalizado.setId(statusId);
+        statusFinalizado.setNome("Finalizado");
+
+        when(chamadoRepository.findByIdAndAdminId(adminId, chamadoId)).thenReturn(Optional.of(chamado));
+        when(statusChamadoRepository.findById(statusId)).thenReturn(Optional.of(statusFinalizado));
+        when(chamadoRepository.save(any(Chamado.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Chamado chamadoFinalizado = chamadoService.atualizarStatusComoAdmin(admin, chamadoId, statusId);
+
+        assertEquals(statusFinalizado, chamadoFinalizado.getStatus());
+        assertNotNull(chamadoFinalizado.getDataFinalizacao());
+        assertTrue(chamadoFinalizado.getDataFinalizacao().isBefore(LocalDateTime.now().plusSeconds(1)));
+    }
+
+    @Test
+    void reabrirComoMoradorDeveLimparDataFinalizacaoEVoltarParaSolicitado() {
+        UUID moradorId = UUID.randomUUID();
+        UUID chamadoId = UUID.randomUUID();
+        AuthenticatedUser morador = new AuthenticatedUser(moradorId, "morador@cond.local", "ROLE_MORADOR");
+
+        StatusChamado statusSolicitado = new StatusChamado();
+        statusSolicitado.setNome("Solicitado");
+
+        Chamado chamado = new Chamado();
+        chamado.setId(chamadoId);
+        chamado.setDataAbertura(LocalDateTime.now().minusHours(1));
+        chamado.setDataFinalizacao(LocalDateTime.now().minusHours(1));
+        TipoChamado tipoChamado = new TipoChamado();
+        tipoChamado.setPrazoHoras(4);
+        chamado.setTipoChamado(tipoChamado);
+
+        when(chamadoRepository.findByIdAndMoradorId(chamadoId, moradorId)).thenReturn(Optional.of(chamado));
+        when(statusChamadoRepository.findByNome("Solicitado")).thenReturn(Optional.of(statusSolicitado));
+        when(chamadoRepository.save(any(Chamado.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Chamado reaberto = chamadoService.reabrirComoMorador(morador, chamadoId);
+
+        assertEquals(statusSolicitado, reaberto.getStatus());
+        assertNull(reaberto.getDataFinalizacao());
+    }
+
+    @Test
+    void reabrirComoMoradorDeveAplicarStatusAtrasadoQuandoSlaJaEstiverExpirado() {
+        UUID moradorId = UUID.randomUUID();
+        UUID chamadoId = UUID.randomUUID();
+        AuthenticatedUser morador = new AuthenticatedUser(moradorId, "morador@cond.local", "ROLE_MORADOR");
+
+        StatusChamado statusAtrasado = new StatusChamado();
+        statusAtrasado.setNome("Atrasado");
+
+        TipoChamado tipoChamado = new TipoChamado();
+        tipoChamado.setPrazoHoras(2);
+
+        Chamado chamado = new Chamado();
+        chamado.setId(chamadoId);
+        chamado.setTipoChamado(tipoChamado);
+        chamado.setDataAbertura(LocalDateTime.now().minusHours(3));
+        chamado.setDataFinalizacao(LocalDateTime.now().minusMinutes(10));
+
+        when(chamadoRepository.findByIdAndMoradorId(chamadoId, moradorId)).thenReturn(Optional.of(chamado));
+        when(statusChamadoRepository.findByNome("Atrasado")).thenReturn(Optional.of(statusAtrasado));
+        when(chamadoRepository.save(any(Chamado.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Chamado reaberto = chamadoService.reabrirComoMorador(morador, chamadoId);
+
+        assertEquals(statusAtrasado, reaberto.getStatus());
+        assertNull(reaberto.getDataFinalizacao());
+    }
+
+    @Test
+    void reabrirComoMoradorDeveFalharQuandoChamadoNaoEstiverFinalizado() {
+        UUID moradorId = UUID.randomUUID();
+        UUID chamadoId = UUID.randomUUID();
+        AuthenticatedUser morador = new AuthenticatedUser(moradorId, "morador@cond.local", "ROLE_MORADOR");
+
+        Chamado chamado = new Chamado();
+        chamado.setId(chamadoId);
+        chamado.setDataFinalizacao(null);
+
+        when(chamadoRepository.findByIdAndMoradorId(chamadoId, moradorId)).thenReturn(Optional.of(chamado));
+
+        assertThrows(
+                BusinessRuleException.class,
+                () -> chamadoService.reabrirComoMorador(morador, chamadoId)
+        );
     }
 }

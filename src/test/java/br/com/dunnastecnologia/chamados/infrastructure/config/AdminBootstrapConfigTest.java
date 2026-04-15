@@ -45,6 +45,7 @@ class AdminBootstrapConfigTest {
                 .thenReturn(Optional.empty())
                 .thenReturn(Optional.of(solicitado));
         when(statusChamadoRepository.findByNome("Finalizado")).thenReturn(Optional.empty());
+        when(statusChamadoRepository.findByNome("Atrasado")).thenReturn(Optional.empty());
         when(statusChamadoRepository.findByInicialPadraoTrue()).thenReturn(Optional.empty());
         when(statusChamadoRepository.save(any(StatusChamado.class))).thenAnswer(invocation -> {
             StatusChamado status = invocation.getArgument(0);
@@ -74,9 +75,12 @@ class AdminBootstrapConfigTest {
                 .anyMatch(status -> "Solicitado".equals(status.getNome()) && Boolean.TRUE.equals(status.getInicialPadrao()));
         boolean possuiFinalizado = captor.getAllValues().stream()
                 .anyMatch(status -> "Finalizado".equals(status.getNome()));
+        boolean possuiAtrasado = captor.getAllValues().stream()
+                .anyMatch(status -> "Atrasado".equals(status.getNome()));
 
         assertTrue(possuiSolicitadoPadrao);
         assertTrue(possuiFinalizado);
+        assertTrue(possuiAtrasado);
     }
 
     @Test
@@ -90,6 +94,7 @@ class AdminBootstrapConfigTest {
 
         when(statusChamadoRepository.findByNome("Solicitado")).thenReturn(Optional.of(new StatusChamado()));
         when(statusChamadoRepository.findByNome("Finalizado")).thenReturn(Optional.of(new StatusChamado()));
+        when(statusChamadoRepository.findByNome("Atrasado")).thenReturn(Optional.of(new StatusChamado()));
         when(statusChamadoRepository.findByInicialPadraoTrue()).thenReturn(Optional.empty());
         when(usuarioRepository.existsAdministrador()).thenReturn(false);
         when(usuarioRepository.findByEmail("admin@cond.local")).thenReturn(Optional.of(administrador));

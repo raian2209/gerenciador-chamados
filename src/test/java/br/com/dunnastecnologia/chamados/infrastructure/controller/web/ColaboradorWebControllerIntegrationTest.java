@@ -1,25 +1,35 @@
 package br.com.dunnastecnologia.chamados.infrastructure.controller.web;
 
 import br.com.dunnastecnologia.chamados.application.UserCase.AnexoChamadoUseCases;
+import br.com.dunnastecnologia.chamados.application.UserCase.AnexoComentarioUseCases;
 import br.com.dunnastecnologia.chamados.application.UserCase.ColaboradorUseCases;
 import br.com.dunnastecnologia.chamados.application.UserCase.ComentarioUseCase;
 import br.com.dunnastecnologia.chamados.application.pagination.PageResult;
+import br.com.dunnastecnologia.chamados.domain.model.Chamado;
+import br.com.dunnastecnologia.chamados.domain.model.Comentario;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
@@ -37,6 +47,9 @@ class ColaboradorWebControllerIntegrationTest {
 
     @MockitoBean
     private AnexoChamadoUseCases anexoChamadoUseCases;
+
+    @MockitoBean
+    private AnexoComentarioUseCases anexoComentarioUseCases;
 
     @MockitoBean
     private ComentarioUseCase comentarioUseCase;
@@ -73,5 +86,75 @@ class ColaboradorWebControllerIntegrationTest {
                 .andExpect(model().attributeExists("chamados", "chamadosPage", "statusDisponiveis", "tiposChamadoDisponiveis"));
 
         verify(colaboradorUseCases).buscarChamados(colaborador, statusId, tipoChamadoId, "A-101", pageRequest);
+    }
+
+    @Test
+    void comentarChamadoDoColaboradorDevePermitirAnexoNoComentario() throws Exception {
+        UUID chamadoId = UUID.fromString("00000000-0000-0000-0000-000000000032");
+        UUID comentarioId = UUID.fromString("00000000-0000-0000-0000-000000000033");
+        byte[] conteudo = "comentario-colaborador".getBytes();
+        var colaborador = new br.com.dunnastecnologia.chamados.application.Security.AuthenticatedUser(
+                UUID.fromString("00000000-0000-0000-0000-000000000002"),
+                "colaborador@condominio.local",
+                "ROLE_COLABORADOR"
+        );
+
+        Comentario comentario = new Comentario();
+        comentario.setId(comentarioId);
+
+        MockMultipartFile arquivo = new MockMultipartFile(
+                "arquivo",
+                "retorno.txt",
+                "text/plain",
+                conteudo
+        );
+
+        when(colaboradorUseCases.comentarChamado(colaborador, chamadoId, "Atualizacao do atendimento"))
+                .thenReturn(comentario);
+
+        mockMvc.perform(
+                        multipart("/colaborador/chamados/{chamadoId}/comentarios", chamadoId)
+                                .file(arquivo)
+                                .with(authentication(WebTestAuthenticationFactory.colaborador()))
+                                .param("mensagem", "Atualizacao do atendimento")
+                )
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/colaborador/chamados/" + chamadoId));
+
+        verify(anexoComentarioUseCases).adicionarAnexoAoComentario(
+                eq(colaborador),
+                eq(chamadoId),
+                eq(comentarioId),
+                eq("retorno.txt"),
+                eq("text/plain"),
+                eq((long) conteudo.length),
+                argThat(bytes -> Arrays.equals(bytes, conteudo))
+        );
+    }
+
+    @Test
+    void atualizarStatusDeveRedirecionarParaListaQuandoChamadoForFinalizado() throws Exception {
+        UUID chamadoId = UUID.fromString("00000000-0000-0000-0000-000000000034");
+        UUID statusId = UUID.fromString("00000000-0000-0000-0000-000000000035");
+        var colaborador = new br.com.dunnastecnologia.chamados.application.Security.AuthenticatedUser(
+                UUID.fromString("00000000-0000-0000-0000-000000000002"),
+                "colaborador@condominio.local",
+                "ROLE_COLABORADOR"
+        );
+
+        Chamado chamadoFinalizado = new Chamado();
+        chamadoFinalizado.setId(chamadoId);
+        chamadoFinalizado.setDataFinalizacao(java.time.LocalDateTime.now());
+
+        when(colaboradorUseCases.atualizarStatusChamado(colaborador, chamadoId, statusId))
+                .thenReturn(chamadoFinalizado);
+
+        mockMvc.perform(
+                        post("/colaborador/chamados/{chamadoId}/status", chamadoId)
+                                .with(authentication(WebTestAuthenticationFactory.colaborador()))
+                                .param("statusId", statusId.toString())
+                )
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/colaborador/chamados"));
     }
 }

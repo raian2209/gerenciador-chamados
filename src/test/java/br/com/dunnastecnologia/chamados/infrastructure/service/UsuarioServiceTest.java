@@ -14,6 +14,7 @@ import br.com.dunnastecnologia.chamados.infrastructure.repository.TipoChamadoRep
 import br.com.dunnastecnologia.chamados.infrastructure.repository.UnidadeRepository;
 import br.com.dunnastecnologia.chamados.infrastructure.repository.UsuarioRepository;
 import br.com.dunnastecnologia.chamados.infrastructure.service.support.AuthenticatedUserValidator;
+import br.com.dunnastecnologia.chamados.domain.validation.ValidationLimits;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -69,6 +70,17 @@ class UsuarioServiceTest {
 
         assertEquals("senha-codificada", salvo.getSenha());
         verify(usuarioRepository).save(usuario);
+    }
+
+    @Test
+    void cadastrarUsuarioDeveFalharQuandoNomeExcederLimite() {
+        AuthenticatedUser admin = new AuthenticatedUser(UUID.randomUUID(), "admin@cond.local", "ROLE_ADMINISTRADOR");
+        Morador usuario = new Morador();
+        usuario.setNome("a".repeat(ValidationLimits.USUARIO_NOME_MAX_LENGTH + 1));
+        usuario.setEmail("maria@cond.local");
+        usuario.setSenha("senha123");
+
+        assertThrows(BusinessRuleException.class, () -> usuarioService.cadastrarUsuario(admin, usuario));
     }
 
     @Test

@@ -2,24 +2,31 @@ package br.com.dunnastecnologia.chamados.infrastructure.controller.web;
 
 import br.com.dunnastecnologia.chamados.application.UserCase.AdminUseCases;
 import br.com.dunnastecnologia.chamados.application.UserCase.AnexoChamadoUseCases;
+import br.com.dunnastecnologia.chamados.application.UserCase.AnexoComentarioUseCases;
 import br.com.dunnastecnologia.chamados.application.UserCase.ComentarioUseCase;
 import br.com.dunnastecnologia.chamados.application.pagination.PageResult;
+import br.com.dunnastecnologia.chamados.domain.model.Comentario;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
@@ -39,6 +46,9 @@ class AdminWebControllerIntegrationTest {
 
     @MockitoBean
     private AnexoChamadoUseCases anexoChamadoUseCases;
+
+    @MockitoBean
+    private AnexoComentarioUseCases anexoComentarioUseCases;
 
     @MockitoBean
     private ComentarioUseCase comentarioUseCase;
@@ -121,6 +131,56 @@ class AdminWebControllerIntegrationTest {
                         "ROLE_ADMINISTRADOR"
                 ),
                 usuarioId
+        );
+    }
+
+    @Test
+    void comentarChamadoDoAdminDevePermitirAnexoNoComentario() throws Exception {
+        UUID chamadoId = UUID.fromString("00000000-0000-0000-0000-000000000021");
+        UUID comentarioId = UUID.fromString("00000000-0000-0000-0000-000000000022");
+        byte[] conteudo = "comentario-admin".getBytes();
+
+        Comentario comentario = new Comentario();
+        comentario.setId(comentarioId);
+
+        MockMultipartFile arquivo = new MockMultipartFile(
+                "arquivo",
+                "analise.pdf",
+                "application/pdf",
+                conteudo
+        );
+
+        when(adminUseCases.comentarChamado(
+                new br.com.dunnastecnologia.chamados.application.Security.AuthenticatedUser(
+                        UUID.fromString("00000000-0000-0000-0000-000000000001"),
+                        "admin@condominio.local",
+                        "ROLE_ADMINISTRADOR"
+                ),
+                chamadoId,
+                "Segue analise"
+        )).thenReturn(comentario);
+
+        mockMvc.perform(
+                        multipart("/admin/chamados/{chamadoId}/comentarios", chamadoId)
+                                .file(arquivo)
+                                .with(authentication(WebTestAuthenticationFactory.administrador()))
+                                .param("mensagem", "Segue analise")
+                )
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/admin/chamados/" + chamadoId));
+
+        verify(anexoComentarioUseCases).adicionarAnexoAoComentario(
+                eq(new br.com.dunnastecnologia.chamados.application.Security.AuthenticatedUser(
+                        UUID.fromString("00000000-0000-0000-0000-000000000001"),
+                        "admin@condominio.local",
+                        "ROLE_ADMINISTRADOR"
+                )),
+                eq(chamadoId),
+                eq(comentarioId),
+                eq("analise.pdf"),
+                eq("application/pdf"),
+                eq((long) conteudo.length),
+                argThat(bytes -> Arrays.equals(bytes, conteudo))
         );
     }
 }
