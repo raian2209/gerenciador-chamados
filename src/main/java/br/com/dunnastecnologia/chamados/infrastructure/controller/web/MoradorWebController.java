@@ -4,9 +4,11 @@ import br.com.dunnastecnologia.chamados.application.UserCase.AnexoChamadoUseCase
 import br.com.dunnastecnologia.chamados.application.UserCase.AnexoComentarioUseCases;
 import br.com.dunnastecnologia.chamados.application.UserCase.ComentarioUseCase;
 import br.com.dunnastecnologia.chamados.application.UserCase.MoradorUseCases;
+import br.com.dunnastecnologia.chamados.application.UserCase.StatusChamadoUseCase;
 import br.com.dunnastecnologia.chamados.application.UserCase.TipoChamadoUseCase;
 import br.com.dunnastecnologia.chamados.infrastructure.controller.web.form.AbrirChamadoForm;
 import br.com.dunnastecnologia.chamados.infrastructure.controller.web.form.ComentarioForm;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
@@ -25,6 +27,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Controller
@@ -34,6 +37,7 @@ public class MoradorWebController {
 
     private final MoradorUseCases moradorUseCases;
     private final TipoChamadoUseCase tipoChamadoUseCase;
+    private final StatusChamadoUseCase statusChamadoUseCase;
     private final AnexoChamadoUseCases anexoChamadoUseCases;
     private final AnexoComentarioUseCases anexoComentarioUseCases;
     private final ComentarioUseCase comentarioUseCase;
@@ -42,6 +46,7 @@ public class MoradorWebController {
     public MoradorWebController(
             MoradorUseCases moradorUseCases,
             TipoChamadoUseCase tipoChamadoUseCase,
+            StatusChamadoUseCase statusChamadoUseCase,
             AnexoChamadoUseCases anexoChamadoUseCases,
             AnexoComentarioUseCases anexoComentarioUseCases,
             ComentarioUseCase comentarioUseCase,
@@ -49,6 +54,7 @@ public class MoradorWebController {
     ) {
         this.moradorUseCases = moradorUseCases;
         this.tipoChamadoUseCase = tipoChamadoUseCase;
+        this.statusChamadoUseCase = statusChamadoUseCase;
         this.anexoChamadoUseCases = anexoChamadoUseCases;
         this.anexoComentarioUseCases = anexoComentarioUseCases;
         this.comentarioUseCase = comentarioUseCase;
@@ -73,7 +79,7 @@ public class MoradorWebController {
     ) {
         var currentUser = support.authenticatedUser(authentication);
         var unidades = moradorUseCases.listarMinhasUnidades(currentUser, support.pageRequest(0, 20));
-        var chamados = moradorUseCases.listarMeusChamados(currentUser, support.pageRequest(0, 5));
+        var chamados = moradorUseCases.listarMeusChamados(currentUser, null, null, null, null, support.pageRequest(0, 5));
 
         model.addAttribute("pageTitle", "Meu Painel");
         model.addAttribute("minhasUnidades", support.mapContent(unidades.content(), support::toUnidadeMap));
@@ -87,16 +93,37 @@ public class MoradorWebController {
     @Transactional(readOnly = true)
     public String listarChamados(
             Authentication authentication,
+            @RequestParam(required = false) UUID statusId,
+            @RequestParam(required = false) UUID unidadeId,
+            @RequestParam(required = false) UUID tipoChamadoId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataAbertura,
             @RequestParam(defaultValue = "0") Integer page,
             @RequestParam(defaultValue = "10") Integer size,
             Model model
     ) {
         var currentUser = support.authenticatedUser(authentication);
-        var chamados = moradorUseCases.listarMeusChamados(currentUser, support.pageRequest(page, size));
+        var chamados = moradorUseCases.listarMeusChamados(
+                currentUser,
+                statusId,
+                unidadeId,
+                tipoChamadoId,
+                dataAbertura,
+                support.pageRequest(page, size)
+        );
+        var status = statusChamadoUseCase.listarStatus(support.pageRequest(0, 100));
+        var unidades = moradorUseCases.listarMinhasUnidades(currentUser, support.pageRequest(0, 100));
+        var tipos = tipoChamadoUseCase.listarTiposChamado(support.pageRequest(0, 100));
 
         model.addAttribute("pageTitle", "Meus Chamados");
         model.addAttribute("chamados", support.mapContent(chamados.content(), support::toChamadoMap));
         model.addAttribute("chamadosPage", support.pageMetadata(chamados));
+        model.addAttribute("statusDisponiveis", support.mapContent(status.content(), support::toStatusChamadoMap));
+        model.addAttribute("unidadesDisponiveis", support.mapContent(unidades.content(), support::toUnidadeMap));
+        model.addAttribute("tiposChamadoDisponiveis", support.mapContent(tipos.content(), support::toTipoChamadoMap));
+        model.addAttribute("filtroStatusId", statusId);
+        model.addAttribute("filtroUnidadeId", unidadeId);
+        model.addAttribute("filtroTipoChamadoId", tipoChamadoId);
+        model.addAttribute("filtroDataAbertura", dataAbertura);
         return "morador/chamados/lista";
     }
 

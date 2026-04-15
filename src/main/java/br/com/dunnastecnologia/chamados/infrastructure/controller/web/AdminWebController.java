@@ -8,6 +8,7 @@ import br.com.dunnastecnologia.chamados.application.pagination.PageResult;
 import br.com.dunnastecnologia.chamados.domain.model.Administrador;
 import br.com.dunnastecnologia.chamados.domain.model.Colaborador;
 import br.com.dunnastecnologia.chamados.domain.model.Morador;
+import br.com.dunnastecnologia.chamados.domain.model.Unidade;
 import br.com.dunnastecnologia.chamados.domain.model.Usuario;
 import br.com.dunnastecnologia.chamados.infrastructure.controller.web.form.AtualizarStatusForm;
 import br.com.dunnastecnologia.chamados.infrastructure.controller.web.form.BlocoForm;
@@ -18,6 +19,7 @@ import br.com.dunnastecnologia.chamados.infrastructure.controller.web.form.Usuar
 import br.com.dunnastecnologia.chamados.infrastructure.controller.web.form.VincularColaboradorTipoChamadoForm;
 import br.com.dunnastecnologia.chamados.infrastructure.controller.web.form.VincularMoradorUnidadeForm;
 import br.com.dunnastecnologia.chamados.infrastructure.exception.BusinessRuleException;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
@@ -36,15 +38,19 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.time.LocalDate;
 import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/admin")
 @PreAuthorize("hasRole('ADMINISTRADOR')")
 public class AdminWebController {
+
+    private static final Set<String> STATUS_RESERVADOS = Set.of("Finalizado", "Atrasado", "Solicitado");
 
     private final AdminUseCases adminUseCases;
     private final AnexoChamadoUseCases anexoChamadoUseCases;
@@ -126,7 +132,16 @@ public class AdminWebController {
         PageResult<?> usuarios = adminUseCases.listarUsuarios(support.pageRequest(0, 1));
         PageResult<?> tipos = adminUseCases.listarTiposChamado(support.pageRequest(0, 1));
         PageResult<?> status = adminUseCases.listarStatus(support.pageRequest(0, 1));
-        var chamados = adminUseCases.buscarChamados(currentUser, null, null, support.pageRequest(0, 5));
+        var statusDisponiveis = adminUseCases.listarStatus(support.pageRequest(0, 100));
+        var chamados = adminUseCases.buscarChamados(currentUser, null, null, null, support.pageRequest(0, 5));
+        UUID statusAtrasadoId = statusDisponiveis.content().stream()
+                .filter(statusChamado -> "Atrasado".equalsIgnoreCase(statusChamado.getNome()))
+                .map(br.com.dunnastecnologia.chamados.domain.model.StatusChamado::getId)
+                .findFirst()
+                .orElse(null);
+        long totalChamadosAtrasados = statusAtrasadoId == null
+                ? 0
+                : adminUseCases.buscarChamados(currentUser, statusAtrasadoId, null, null, support.pageRequest(0, 1)).totalElements();
 
         model.addAttribute("pageTitle", "Painel do Administrador");
         model.addAttribute("totalBlocos", blocos.totalElements());
@@ -134,6 +149,7 @@ public class AdminWebController {
         model.addAttribute("totalTiposChamado", tipos.totalElements());
         model.addAttribute("totalStatus", status.totalElements());
         model.addAttribute("totalChamados", chamados.totalElements());
+        model.addAttribute("totalChamadosAtrasados", totalChamadosAtrasados);
         model.addAttribute("chamadosRecentes", support.mapContent(chamados.content(), support::toChamadoMap));
         return "admin/dashboard";
     }
@@ -144,12 +160,19 @@ public class AdminWebController {
             @RequestParam(required = false) UUID moradorId,
             @RequestParam(required = false) UUID blocoId,
             @RequestParam(required = false) String moradorEmail,
+            @RequestParam(required = false) String cadastradosEmail,
+            @RequestParam(defaultValue = "0") Integer cadastradosPage,
+            @RequestParam(defaultValue = "10") Integer cadastradosSize,
             @RequestParam(required = false) String semUnidadeEmail,
             @RequestParam(defaultValue = "0") Integer semUnidadePage,
             @RequestParam(defaultValue = "10") Integer semUnidadeSize,
             Model model
     ) {
         var moradores = adminUseCases.listarMoradoresPorPrefixoEmail(moradorEmail, support.pageRequest(0, 100));
+        var moradoresCadastrados = adminUseCases.listarMoradoresPorPrefixoEmail(
+                cadastradosEmail,
+                support.pageRequest(cadastradosPage, cadastradosSize)
+        );
         var blocos = adminUseCases.listarBlocos(support.pageRequest(0, 100));
         var moradoresSemUnidade = adminUseCases.listarMoradoresSemUnidadePorPrefixoEmail(
                 semUnidadeEmail,
@@ -158,12 +181,15 @@ public class AdminWebController {
 
         model.addAttribute("pageTitle", "Vincular Morador");
         model.addAttribute("moradoresDisponiveis", support.mapContent(moradores.content(), support::toUsuarioMap));
+        model.addAttribute("moradoresCadastrados", support.mapContent(moradoresCadastrados.content(), support::toUsuarioMap));
+        model.addAttribute("moradoresCadastradosPage", support.pageMetadata(moradoresCadastrados));
         model.addAttribute("blocosDisponiveis", support.mapContent(blocos.content(), support::toBlocoMap));
         model.addAttribute("moradoresSemUnidade", support.mapContent(moradoresSemUnidade.content(), support::toUsuarioMap));
         model.addAttribute("moradoresSemUnidadePage", support.pageMetadata(moradoresSemUnidade));
         model.addAttribute("moradorSelecionadoId", moradorId);
         model.addAttribute("blocoSelecionadoId", blocoId);
         model.addAttribute("filtroMoradorEmail", moradorEmail);
+        model.addAttribute("filtroCadastradosEmail", cadastradosEmail);
         model.addAttribute("filtroSemUnidadeEmail", semUnidadeEmail);
 
         if (moradorId != null) {
@@ -239,10 +265,26 @@ public class AdminWebController {
     ) {
         var bloco = adminUseCases.buscarBlocoPorId(blocoId);
         var unidades = adminUseCases.listarUnidadesDoBloco(blocoId, support.pageRequest(page, size));
+        var moradoresPorUnidade = adminUseCases.listarMoradoresPorUnidadeIds(
+                unidades.content().stream().map(Unidade::getId).toList()
+        );
 
         model.addAttribute("pageTitle", "Detalhes do Bloco");
         model.addAttribute("bloco", support.toBlocoMap(bloco));
-        model.addAttribute("unidades", support.mapContent(unidades.content(), support::toUnidadeMap));
+        model.addAttribute(
+                "unidades",
+                unidades.content().stream()
+                        .map(unidade -> {
+                            var values = support.toUnidadeMap(unidade);
+                            var moradores = moradoresPorUnidade.getOrDefault(unidade.getId(), java.util.List.of());
+                            values.put(
+                                    "moradores",
+                                    moradores.stream().map(support::toUsuarioMap).toList()
+                            );
+                            return values;
+                        })
+                        .toList()
+        );
         model.addAttribute("unidadesPage", support.pageMetadata(unidades));
         return "admin/blocos/detalhe";
     }
@@ -532,7 +574,16 @@ public class AdminWebController {
     ) {
         var status = adminUseCases.listarStatus(support.pageRequest(page, size));
         model.addAttribute("pageTitle", "Status de Chamado");
-        model.addAttribute("statusChamado", support.mapContent(status.content(), support::toStatusChamadoMap));
+        model.addAttribute(
+                "statusChamado",
+                status.content().stream()
+                        .map(statusChamado -> {
+                            Map<String, Object> values = new LinkedHashMap<>(support.toStatusChamadoMap(statusChamado));
+                            values.put("editavel", !isStatusReservado(statusChamado.getNome()));
+                            return values;
+                        })
+                        .toList()
+        );
         model.addAttribute("statusChamadoPage", support.pageMetadata(status));
 
         if (statusId != null) {
@@ -540,6 +591,7 @@ public class AdminWebController {
             var form = new StatusChamadoForm();
             form.setNome(statusSelecionado.getNome());
             model.addAttribute("statusEdicao", support.toStatusChamadoMap(statusSelecionado));
+            model.addAttribute("statusEdicaoBloqueada", isStatusReservado(statusSelecionado.getNome()));
             model.addAttribute("statusChamadoForm", form);
         }
 
@@ -593,12 +645,19 @@ public class AdminWebController {
             Authentication authentication,
             @RequestParam(required = false) UUID statusId,
             @RequestParam(required = false) String moradorNome,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataAbertura,
             @RequestParam(defaultValue = "0") Integer page,
             @RequestParam(defaultValue = "10") Integer size,
             Model model
     ) {
         var currentUser = support.authenticatedUser(authentication);
-        var chamados = adminUseCases.buscarChamados(currentUser, statusId, moradorNome, support.pageRequest(page, size));
+        var chamados = adminUseCases.buscarChamados(
+                currentUser,
+                statusId,
+                moradorNome,
+                dataAbertura,
+                support.pageRequest(page, size)
+        );
         var status = adminUseCases.listarStatus(support.pageRequest(0, 100));
 
         model.addAttribute("pageTitle", "Chamados");
@@ -607,6 +666,7 @@ public class AdminWebController {
         model.addAttribute("statusDisponiveis", support.mapContent(status.content(), support::toStatusChamadoMap));
         model.addAttribute("filtroStatusId", statusId);
         model.addAttribute("filtroMoradorNome", moradorNome);
+        model.addAttribute("filtroDataAbertura", dataAbertura);
         return "admin/chamados/lista";
     }
 
@@ -862,5 +922,12 @@ public class AdminWebController {
 
     private int defaultInteger(Integer value) {
         return value == null ? 0 : value;
+    }
+
+    private boolean isStatusReservado(String nome) {
+        if (nome == null) {
+            return false;
+        }
+        return STATUS_RESERVADOS.stream().anyMatch(reservado -> reservado.equalsIgnoreCase(nome));
     }
 }

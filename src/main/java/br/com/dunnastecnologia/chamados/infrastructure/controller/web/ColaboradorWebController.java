@@ -6,6 +6,7 @@ import br.com.dunnastecnologia.chamados.application.UserCase.AnexoComentarioUseC
 import br.com.dunnastecnologia.chamados.application.UserCase.ComentarioUseCase;
 import br.com.dunnastecnologia.chamados.infrastructure.controller.web.form.AtualizarStatusForm;
 import br.com.dunnastecnologia.chamados.infrastructure.controller.web.form.ComentarioForm;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Controller
@@ -68,11 +70,21 @@ public class ColaboradorWebController {
             Model model
     ) {
         var currentUser = support.authenticatedUser(authentication);
-        var chamados = colaboradorUseCases.buscarChamados(currentUser, null, null, null, support.pageRequest(0, 5));
+        var statusDisponiveis = colaboradorUseCases.listarStatusDisponiveis(currentUser, support.pageRequest(0, 100));
+        var chamados = colaboradorUseCases.buscarChamados(currentUser, null, null, null, null, support.pageRequest(0, 5));
+        UUID statusAtrasadoId = statusDisponiveis.content().stream()
+                .filter(statusChamado -> "Atrasado".equalsIgnoreCase(statusChamado.getNome()))
+                .map(br.com.dunnastecnologia.chamados.domain.model.StatusChamado::getId)
+                .findFirst()
+                .orElse(null);
+        long totalChamadosAtrasados = statusAtrasadoId == null
+                ? 0
+                : colaboradorUseCases.buscarChamados(currentUser, statusAtrasadoId, null, null, null, support.pageRequest(0, 1)).totalElements();
 
         model.addAttribute("pageTitle", "Painel do Colaborador");
         model.addAttribute("chamados", support.mapContent(chamados.content(), support::toChamadoMap));
         model.addAttribute("totalChamadosAbertos", chamados.totalElements());
+        model.addAttribute("totalChamadosAtrasados", totalChamadosAtrasados);
         return "colaborador/dashboard";
     }
 
@@ -83,6 +95,7 @@ public class ColaboradorWebController {
             @RequestParam(required = false) UUID statusId,
             @RequestParam(required = false) UUID tipoChamadoId,
             @RequestParam(required = false) String unidade,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataAbertura,
             @RequestParam(defaultValue = "0") Integer page,
             @RequestParam(defaultValue = "10") Integer size,
             Model model
@@ -93,6 +106,7 @@ public class ColaboradorWebController {
                 statusId,
                 tipoChamadoId,
                 unidade,
+                dataAbertura,
                 support.pageRequest(page, size)
         );
         var status = colaboradorUseCases.listarStatusDisponiveis(currentUser, support.pageRequest(0, 100));
@@ -106,6 +120,7 @@ public class ColaboradorWebController {
         model.addAttribute("filtroStatusId", statusId);
         model.addAttribute("filtroTipoChamadoId", tipoChamadoId);
         model.addAttribute("filtroUnidade", unidade);
+        model.addAttribute("filtroDataAbertura", dataAbertura);
         return "colaborador/chamados/lista";
     }
 
