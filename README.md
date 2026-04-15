@@ -80,18 +80,20 @@ Este projeto implementa um sistema de gerenciamento de chamados para condomínio
 
 ## Chamado
 
-- Data de inicio definida no momento em que o chamado for iniciado.
+- Data de início definida no momento em que o chamado for iniciado.
 - Data de finalização definida no momento em que o chamado for concluído.
+- Se algum chamado que esteja com status diferente de finalisado estiver : horario_atual > horario_inicio + SLA. Será marcado como atrasado.
+  - Essa funcionalidade foi implementada via scheduler para evitar custo a cada acesso.
 
 ### Regras gerais do sistema
 - O sistema possui blocos, andares e unidades.
-- Toda unidade deve ser criada automaticamente a partir da configuração do bloco.
+- Toda a unidade deve ser criada automaticamente a partir da configuração do bloco.
 - Todo chamado deve iniciar com um status padrão.
 - Apenas administradores e colaboradores podem alterar o status.
 - A data de finalização deve ser registrada quando o chamado for concluído.
 - Comentários compõem o histórico de interações do chamado.
 - Chamados finalizados se tornam imutáveis para comentário, anexo e alteração de status.
-- Ao reabrir um chamado finalizado, a data de finalização é removida.
+- Ao reabrir(Morador) um chamado finalizado, a data de finalização é removida.
 - Na reabertura pelo morador, o status volta para `Solicitado` ou `Atrasado`, conforme a comparação entre horário atual e `data_abertura + SLA`.
 - Campos textuais persistidos possuem limite de `255` caracteres com validação na interface, na aplicação e no banco.
 - Anexos do chamado e de comentários possuem limite máximo de `5 MB`.
@@ -100,7 +102,7 @@ Este projeto implementa um sistema de gerenciamento de chamados para condomínio
 ## O sistema gira em torno de quatro frentes principais:
 
 - Administradores mantêm a estrutura do condomínio, usuários, vínculos, tipos de chamado e status.
-- Moradores acessam suas unidades vinculadas, abrem chamados, anexam arquivos e registram comentários.
+- Moradores acessam a suas unidades vinculadas, abrem chamados, anexam arquivos e registram comentários.
 - Colaboradores acompanham os chamados acessíveis dentro do seu contexto e atualizam o andamento até a finalização.
 - O banco sustenta tanto as entidades centrais quanto as regras de visibilidade, inclusive com consultas nativas para filtrar chamados por perfil.
 
@@ -125,12 +127,12 @@ Este projeto implementa um sistema de gerenciamento de chamados para condomínio
 - Inclusão opcional de anexo já na abertura do chamado.
 - Definição de status inicial padrão a partir de configuração persistida.
 - Atualização de status e finalização por administrador ou colaborador.
-- Reabertura de chamado finalizado pelo morador.
+- Morador consegue Reabrir chamados que já foram finalisados.
 - Aplicação automática do status `Atrasado` por job agendado quando o SLA expira.
-  - Via Scheduler para não sobrecarregar  as chamadas ao front fasendo calculos constantes desnecesarios
+  - Via Scheduler para não sobrecarregar as chamadas ao front fasendo cálculos constantes desnecessários.
 - Listagem paginada e filtrada conforme perfil de acesso.
-  - Listagem usa Paginação para melhor performance. 
-  - Filtros para melhorar a pesquisa e experiencia do usuario.
+  - Listagem usa Paginação para melhor desempenho. 
+  - Filtros para melhorar a pesquisa e experiencia do usuário.
 
 ### Histórico e evidências
 
@@ -212,9 +214,22 @@ gerenciador-chamados/                        -> raiz do projeto com código, bui
 ├── src/
 │   ├── main/
 │   │   ├── java/br/com/dunnastecnologia/chamados/
-│   │   │   ├── application/                 -> contratos de casos de uso e modelos de apoio da aplicação
-│   │   │   ├── domain/                      -> entidades e conceitos centrais do negócio
-│   │   │   └── infrastructure/              -> controllers, services, repositories, segurança e configuração
+│   │   │   ├── application/                 -> contratos e modelos de apoio da camada de aplicação
+│   │   │   │   ├── Security/                -> representação do usuário autenticado na aplicação
+│   │   │   │   ├── pagination/              -> abstrações de paginação usadas pelos casos de uso
+│   │   │   │   └── UserCase/                -> interfaces dos casos de uso por contexto de negócio
+│   │   │   ├── domain/                      -> núcleo do negócio persistido no sistema
+│   │   │   │   ├── model/                   -> entidades principais do domínio, como chamado, usuário e unidade
+│   │   │   │   └── validation/              -> limites e regras reutilizáveis de validação do domínio
+│   │   │   └── infrastructure/              -> implementação técnica da aplicação
+│   │   │       ├── config/                  -> configuração Spring, bootstrap e agendamentos
+│   │   │       ├── controller/              -> entrada HTTP da aplicação, com controllers web e forms
+│   │   │       ├── dto/                     -> objetos de transporte entre camadas e respostas
+│   │   │       ├── exception/               -> exceções de regra de negócio e de acesso
+│   │   │       ├── mapper/                  -> conversão entre entidades, DTOs e modelos de view
+│   │   │       ├── repository/              -> acesso a dados com Spring Data JPA
+│   │   │       ├── security/                -> autenticação, JWT e adaptação ao Spring Security
+│   │   │       └── service/                 -> implementação dos casos de uso e regras de negócio
 │   │   ├── resources/
 │   │   │   ├── db/migration/                -> migrations versionadas do banco com Flyway
 │   │   │   └── static/                      -> recursos estáticos da interface, como JS, CSS e imagens
@@ -377,7 +392,7 @@ Este trecho descreve o modelo relacional implementado hoje no projeto a partir d
 O domínio está organizado em quatro blocos principais:
 
 - Estrutura do condomínio: `blocos` e `unidades`.
-- Identidade e acesso: `usuarios`, `administradores`, `colaboradores` e `moradores`.
+- Identidade e acesso: `administradores`, `colaboradores` e `moradores`.
 - Operação do chamado: `chamados`, `status_chamado`, `tipos_chamado` e a tabela associativa `colaborador_tipo_chamado`.
 - Histórico e evidências: `comentarios`, `anexos_chamado`, `anexos_comentario` e a tabela associativa `morador_unidade`.
 
@@ -1079,19 +1094,16 @@ FROM flyway_schema_history
 ORDER BY installed_rank;
 ```
 
-Testar a API de login via linha de comando:
+Testar a página inicial via linha de comando:
 
 ```bash
-curl -X POST http://localhost:8080/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"admin@condominio.local","senha":"admin123"}'
+curl -i http://localhost:8080/
 ```
 
-Testar a API autenticada com token JWT:
+Testar a tela de login via linha de comando:
 
 ```bash
-curl http://localhost:8080/api/auth/me \
-  -H "Authorization: Bearer SEU_TOKEN_AQUI"
+curl -i http://localhost:8080/login
 ```
 
 Parar o ambiente:
