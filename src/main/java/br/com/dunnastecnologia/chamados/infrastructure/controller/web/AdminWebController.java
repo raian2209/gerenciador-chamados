@@ -44,7 +44,6 @@ import java.util.stream.Collectors;
 @PreAuthorize("hasRole('ADMINISTRADOR')")
 public class AdminWebController {
 
-    private static final int LOOKUP_PAGE_SIZE = 100;
     private static final Set<String> STATUS_RESERVADOS = Set.of("Finalizado", "Atrasado", "Solicitado");
 
     private final AdminUseCases adminUseCases;
@@ -591,7 +590,7 @@ public class AdminWebController {
     }
 
     private org.springframework.data.domain.PageRequest lookupPageRequest() {
-        return support.pageRequest(0, LOOKUP_PAGE_SIZE);
+        return support.pageRequest(0, 100);
     }
 
     private boolean isStatusReservado(String nome) {

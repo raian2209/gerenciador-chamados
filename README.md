@@ -2,6 +2,40 @@
 
 Este projeto implementa um sistema de gerenciamento de chamados para condomínio, com separação por perfis de acesso, controle de estrutura física do condomínio e acompanhamento completo do ciclo de vida do chamado.
 
+## Índice Remissivo
+
+- [Funcionalidades Seguidas](#funcionalidades-seguidas)
+  - [Administrador](#administrador)
+  - [Colaborador](#colaborador)
+  - [Morador](#morador)
+  - [Chamado](#chamado)
+- [Detalhamento do Sistema](#detalhamento-do-sistema)
+  - [Principais funcionalidades](#principais-funcionalidades)
+- [Padrões de Projeto Utilizados](#padrões-de-projeto-utilizados)
+- [Estrutura do Projeto e Princípios de Arquitetura](#estrutura-do-projeto-e-princípios-de-arquitetura)
+  - [Árvore de diretórios](#árvore-de-diretórios)
+  - [Estrutura do projeto](#estrutura-do-projeto)
+  - [Clean Architecture no projeto](#clean-architecture-no-projeto)
+  - [Princípios SOLID aplicados ao projeto](#princípios-solid-aplicados-ao-projeto)
+  - [Decisões arquiteturais e relação com o projeto](#decisões-arquiteturais-e-relação-com-o-projeto)
+- [Diagrama Relacional](#diagrama-relacional)
+  - [Documentação dos Modelos](#documentação-dos-modelos)
+  - [Tabelas](#tabelas)
+  - [Relacionamentos principais](#relacionamentos-principais)
+  - [Migrations do Banco](#migrations-do-banco)
+- [Endpoints Web](#endpoints-web)
+  - [Endpoints públicos](#endpoints-públicos)
+  - [Endpoints do administrador](#endpoints-do-administrador)
+  - [Endpoints do colaborador](#endpoints-do-colaborador)
+  - [Endpoints do morador](#endpoints-do-morador)
+- [Executar o Projeto](#executar-o-projeto)
+  - [Variáveis de ambiente](#variáveis-de-ambiente)
+  - [Execução com Docker Compose](#execução-com-docker-compose)
+  - [Inicialização e Credenciais Padrão (Bootstrap)](#inicialização-e-credenciais-padrão-bootstrap)
+- [Mapeamento dos Testes](#mapeamento-dos-testes)
+  - [Testes unitários](#testes-unitários)
+  - [Testes de integração](#testes-de-integração)
+
 # Funcionalidades Seguidas 
 
 ## Administrador
