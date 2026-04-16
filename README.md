@@ -159,44 +159,61 @@ Este projeto implementa um sistema de gerenciamento de chamados para condomínio
 
 # Padrões de Projeto Utilizados
 
-O projeto utiliza alguns padrões de projeto de forma prática dentro da organização do projeto.
+O projeto utiliza padrões de projeto e padrões arquiteturais de forma prática para separar entrada HTTP, casos de uso, regras de negócio, persistência, segurança e processamento assíncrono.
 
-### Controller
+### MVC / Controller
 
-- Os controllers em `infrastructure/controller/web` e `infrastructure/controller/api` concentram apenas a entrada e saída HTTP.
-- Eles recebem requisições, delegam a execução para casos de uso e formatam a resposta da interface web ou da API.
-
-### Service Layer
-
-- Os services em `infrastructure/service` centralizam a regra de negócio da aplicação.
-- Classes como `ChamadoService`, `UsuarioService` e `AdminService` coordenam validações, persistência e regras do domínio.
-
-### Repository
-
-- Os repositories em `infrastructure/repository` seguem o padrão Repository.
-- Eles abstraem o acesso ao banco usando Spring Data JPA, evitando espalhar consultas SQL e JPQL pela aplicação.
-
-### Adapter
-
-- O projeto também utiliza o padrão Adapter em pontos de integração com o Spring Security.
-- A classe `UserDetailsImpl` em `infrastructure/security/adapter` adapta a entidade `Usuario` do domínio para a interface `UserDetails` exigida pelo framework.
-- Isso permite que a autenticação do Spring trabalhe com o modelo do sistema sem acoplar a entidade diretamente ao contrato externo.
-
-
-### Strategy por Papel
-
-- A hierarquia `Usuario -> Administrador | Colaborador | Morador` aplica uma variação do padrão Strategy por especialização de comportamento.
-- Cada subtipo define seu papel por meio de `getRole()` e isso influencia autenticação, autorização e fluxo de uso.
-
-### Template do Framework
-
-- O Spring Boot e o Spring Security aplicam internamente o padrão Template Method em pontos como autenticação, filtros e ciclo de requisição.
-- O projeto aproveita isso ao plugar implementações próprias, como `AuthenticationService` e `JwtAuthenticationFilter`.
+- Os controllers em `infrastructure/controller/web` representam a camada Controller do MVC para renderizar páginas JSP.
+- Classes como `AdminWebController`, `MoradorWebController`, `ColaboradorWebController`, `AuthWebController` e `HomeWebController` montam o modelo da tela, aplicam paginação/filtros e retornam views.
+- Os controllers em `infrastructure/controller/api` concentram ações HTTP disparadas pelos formulários, como cadastro, atualização, exclusão, vínculos, comentários, anexos e alteração de status.
+- Essa separação reduz o tamanho dos controllers de página e deixa mais claro o que renderiza tela e o que executa ação.
 
 ### Facade de Casos de Uso
 
 - As interfaces em `application/UserCase` funcionam como fachadas de comportamento da aplicação.
-- Elas expõem operações coesas para cada contexto, como administração, morador, colaborador, comentário e chamado.
+- Elas expõem operações coesas por contexto, como administração, morador, colaborador, chamado, comentário, anexo, usuário, tipo de chamado e status.
+- Os controllers dependem desses contratos em vez de depender diretamente de detalhes de persistência.
+
+### Service Layer / Application Service
+
+- Os services em `infrastructure/service` implementam os casos de uso e centralizam a regra de aplicação.
+- Classes como `ChamadoService`, `UsuarioService`, `AdminService`, `MoradorService`, `ColaboradorService`, `ComentarioService`, `AnexoChamadoService` e `AnexoComentarioService` coordenam validações, autorização, persistência e regras de fluxo.
+- Componentes em `service/support`, como validação de usuário autenticado, acesso ao chamado e validação de entrada, concentram lógicas auxiliares reutilizadas por mais de um serviço.
+
+### Repository
+
+- Os repositories em `infrastructure/repository` seguem o padrão Repository.
+- Eles abstraem o acesso ao banco com Spring Data JPA, evitando espalhar consultas SQL, JPQL e consultas nativas pelas regras de negócio.
+- Repositórios como `ChamadoRepository`, `UsuarioRepository`, `MoradorRepository`, `UnidadeRepository` e `TipoChamadoRepository` concentram operações de persistência e consultas específicas.
+
+### Adapter
+
+- O projeto utiliza Adapter na integração com o Spring Security.
+- A classe `UserDetailsImpl` em `infrastructure/security/adapter` adapta a entidade `Usuario` para a interface `UserDetails` exigida pelo framework.
+- Isso permite que a autenticação do Spring trabalhe com o modelo do sistema sem acoplar a entidade diretamente ao contrato externo.
+
+### Herança e Polimorfismo por Papel
+
+- A hierarquia `Usuario -> Administrador | Colaborador | Morador` representa especializações do usuário por papel.
+- Cada subtipo define seu papel por meio de `getRole()`, influenciando autorização, navegação e escopo das operações.
+- Esse uso é mais próximo de polimorfismo por especialização do que de Strategy clássico, porque não há troca dinâmica de algoritmo em tempo de execução.
+
+### Support / Helper de Camada Web
+
+- `WebControllerSupport` concentra operações auxiliares da camada web, como usuário autenticado, paginação, conversão de dados para a view, upload e resposta de download.
+- Ele evita repetição entre controllers, mas permanece restrito à infraestrutura web.
+- Os formulários em `controller/web/form` continuam simples e não dependem desse suporte.
+
+### Template Method do Framework
+
+- O Spring Boot e o Spring Security aplicam internamente o padrão Template Method em pontos como autenticação, filtros e ciclo de requisição.
+- O projeto aproveita isso ao plugar implementações próprias, como `AuthenticationService` e `JwtAuthenticationFilter`.
+
+### Scheduled Job
+
+- `ChamadoAtrasoScheduler` representa um job agendado para processar chamados atrasados de forma assíncrona.
+- Essa abordagem evita recalcular atraso em toda requisição web.
+- O scheduler delega a regra para o serviço responsável, mantendo o processamento periódico separado da navegação das telas.
 
 ## Estrutura do Projeto e Princípios de Arquitetura
 
@@ -206,28 +223,33 @@ Este projeto foi organizado em camadas que separam domínio, regras de negócio,
 
 ```text
 gerenciador-chamados/                        -> raiz do projeto com código, build, docker e documentação
-├── .mvn/                                    -> arquivos de suporte do Maven Wrapper
 ├── src/
 │   ├── main/
 │   │   ├── java/br/com/dunnastecnologia/chamados/
 │   │   │   ├── application/                 -> contratos e modelos de apoio da camada de aplicação
-│   │   │   │   ├── Security/                -> representação do usuário autenticado na aplicação
+│   │   │   │   ├── Security/                -> contexto do usuário autenticado usado nos casos de uso
 │   │   │   │   ├── pagination/              -> abstrações de paginação usadas pelos casos de uso
-│   │   │   │   └── UserCase/                -> interfaces dos casos de uso por contexto de negócio
-│   │   │   ├── domain/                      -> núcleo do negócio persistido no sistema
-│   │   │   │   ├── model/                   -> entidades principais do domínio, como chamado, usuário e unidade
-│   │   │   │   └── validation/              -> limites e regras reutilizáveis de validação do domínio
+│   │   │   │   └── UserCase/                -> interfaces de casos de uso por contexto: admin, morador, colaborador e chamados
+│   │   │   ├── domain/                      -> núcleo do negócio e entidades persistidas
+│   │   │   │   ├── model/                   -> entidades como Usuario, Bloco, Unidade, Chamado, Comentario, Anexos e Status
+│   │   │   │   └── validation/              -> limites de tamanho e regras reutilizáveis de validação
 │   │   │   └── infrastructure/              -> implementação técnica da aplicação
-│   │   │       ├── config/                  -> configuração Spring, bootstrap e agendamentos
-│   │   │       ├── controller/              -> entrada HTTP da aplicação, com controllers web e forms
+│   │   │       ├── config/                  -> configuração Spring, segurança, bootstrap, OpenAPI e schedulers
+│   │   │       ├── controller/              -> entrada HTTP da aplicação
+│   │   │       │   ├── api/                 -> ações HTTP/CRUD por entidade e papel, chamadas pelos formulários das telas
+│   │   │       │   └── web/                 -> controllers que renderizam páginas JSP e suporte da camada web
+│   │   │       │       └── form/            -> objetos de formulário usados no binding das requisições web
 │   │   │       ├── exception/               -> exceções de regra de negócio e de acesso
 │   │   │       ├── repository/              -> acesso a dados com Spring Data JPA
 │   │   │       ├── security/                -> autenticação, JWT e adaptação ao Spring Security
+│   │   │       │   └── adapter/             -> adaptação do usuário do domínio para contratos do Spring Security
 │   │   │       └── service/                 -> implementação dos casos de uso e regras de negócio
+│   │   │           └── support/             -> componentes auxiliares compartilhados pelos serviços
 │   │   ├── resources/
 │   │   │   ├── db/migration/                -> migrations versionadas do banco com Flyway
-│   │   │   └── static/                      -> recursos estáticos da interface, como JS, CSS e imagens
-│   │   └── webapp/WEB-INF/jsp/              -> views JSP organizadas por papel, contexto funcional e fragments
+│   │   │   ├── static/                      -> recursos estáticos da interface, como CSS, JS e imagens
+│   │   │   └── templates/                   -> diretório reservado de templates
+│   │   └── webapp/WEB-INF/jsp/              -> views JSP protegidas, organizadas por papel, contexto funcional e fragments
 │   │       ├── admin/                       -> telas administrativas do sistema
 │   │       │   ├── blocos/                  -> listagem e detalhe da estrutura de blocos e unidades
 │   │       │   ├── chamados/                -> fila administrativa, detalhe e ações sobre chamados
@@ -244,15 +266,19 @@ gerenciador-chamados/                        -> raiz do projeto com código, bui
 │   │           └── chamados/                -> abertura, listagem, acompanhamento e reabertura de chamados
 │   └── test/
 │       └── java/br/com/dunnastecnologia/chamados/
-│           ├── integration/                 -> testes de integração por fluxo web e repositório
-│           │   ├── controller/web/          -> integração MVC com MockMvc e autenticação simulada
-│           │   └── repository/              -> integração de repositório com comportamento real de consulta/update
-│           └── unit/                        -> testes unitários isolados com mocks
-│               ├── config/                  -> bootstrap e configuração inicial do sistema
-│               └── service/                 -> regras de negócio e serviços de aplicação
+│           ├── integration/                 -> testes de integração separados por fluxo web e persistência
+│           │   ├── controller/web/          -> testes MVC com MockMvc, segurança simulada e redirecionamentos
+│           │   └── repository/              -> testes com comportamento real de consulta e atualização no banco
+│           ├── unit/                        -> testes unitários isolados
+│           │   ├── config/                  -> validações de bootstrap e configuração inicial
+│           │   └── service/                 -> regras de negócio e serviços com dependências mockadas
+│           └── infrastructure/              -> pacote legado/remanescente de testes de infraestrutura ainda presente no projeto
 ├── .env                                     -> variáveis locais usadas pelo docker compose e pela aplicação
+├── .github/workflows/                       -> pipelines do GitHub Actions para execução automatizada de testes
 ├── docker-compose.yml                       -> orquestração local da aplicação e do PostgreSQL
 ├── Dockerfile                               -> imagem da aplicação Java
+├── schema-drawio.sql                        -> SQL usado para importar o schema relacional no Draw.io
+├── diagrama-relacional.drawio.svg           -> diagrama relacional exportado
 ├── pom.xml                                  -> dependências, plugins e build Maven
 ├── README.md                                -> documentação funcional, arquitetural e operacional
 ```
@@ -261,34 +287,36 @@ gerenciador-chamados/                        -> raiz do projeto com código, bui
 
 ### `src/main/java/br/com/dunnastecnologia/chamados/application`
 
-- Concentra os contratos de caso de uso do sistema, como `ChamadoUseCase`, `UsuarioUseCase`, `ComentarioUseCase` e outros fluxos da aplicação.
+- Concentra os contratos de caso de uso do sistema, como `AdminUseCases`, `MoradorUseCases`, `ColaboradorUseCases`, `ChamadoUseCase`, `UsuarioUseCase`, `ComentarioUseCase`, `TipoChamadoUseCase` e `StatusChamadoUseCase`.
 - Também abriga modelos de apoio, como `AuthenticatedUser`, `PageRequest` e `PageResult`.
 - A decisão de manter interfaces nessa camada deixa explícito o que o sistema faz, sem acoplar essa definição a controller, banco ou framework web.
 
 ### `src/main/java/br/com/dunnastecnologia/chamados/domain`
 
-- Contém o núcleo do negócio persistido no sistema, representado por entidades como `Chamado`, `Bloco`, `Unidade`, `Usuario`, `Comentario` e `AnexoChamado`.
+- Contém o núcleo do negócio persistido no sistema, representado por entidades como `Chamado`, `Bloco`, `Unidade`, `Usuario`, `Administrador`, `Colaborador`, `Morador`, `Comentario`, `AnexoChamado`, `AnexoComentario`, `TipoChamado` e `StatusChamado`.
 - Essa camada expressa os conceitos centrais do problema do condomínio e o relacionamento entre eles.
+- `validation` centraliza limites de tamanho usados pelas entidades, serviços e validações de entrada.
 - A decisão de manter os modelos do domínio separados facilita a evolução da regra de negócio sem misturar detalhes de interface ou infraestrutura.
 
 ### `src/main/java/br/com/dunnastecnologia/chamados/infrastructure`
 
 - Reúne a implementação concreta da aplicação.
-- `controller/web` expõe os fluxos HTTP e as páginas JSP para administrador, colaborador, morador e autenticação.
-- `controller/web/form` concentra objetos de entrada vindos dos formulários.
+- `controller/web` expõe os endpoints que renderizam páginas JSP para administrador, colaborador, morador, home e autenticação.
+- `controller/api` concentra as ações HTTP/CRUD disparadas pelas telas, separadas por entidade e escopo, como blocos, usuários, chamados, vínculos, status e tipos de chamado.
+- `controller/web/form` concentra objetos simples de entrada vindos dos formulários web.
 - `service` implementa os contratos definidos na camada `application`.
+- `service/support` reúne apoio transversal usado pelos serviços, evitando duplicação de regras auxiliares.
 - `repository` encapsula o acesso ao banco com Spring Data JPA e consultas nativas.
-- `mapper` converte entidades e DTOs, reduzindo acoplamento entre persistência e apresentação.
-- `dto` organiza os dados trafegados entre camadas.
-- `config` centraliza configurações de segurança, bootstrap inicial e views JSP.
-- `security` implementa JWT, filtro de autenticação e adaptação para Spring Security.
-- `exception` e `service/support` concentram tratamento de regras e lógicas transversais de apoio.
+- `config` centraliza configurações de segurança, bootstrap inicial, Swagger/OpenAPI, views JSP, agendamento e propriedades da aplicação.
+- `security` implementa autenticação, JWT, filtro de autenticação e adaptação para Spring Security.
+- `exception` concentra exceções de regra de negócio, acesso e tratamento de falhas da camada web.
 
 ### `src/main/resources`
 
 - `db/migration` indica o uso de migrações versionadas para controlar a estrutura do banco.
 - `static` concentra CSS, JavaScript e imagens da interface.
-- A separação entre código Java e recursos de interface deixa mais claro o que é backend, frontend e infraestrutura de banco.
+- `templates` está presente como diretório reservado, enquanto as telas renderizadas atualmente ficam em JSP.
+- A separação entre código Java, migrations e recursos de interface deixa mais claro o que é backend, frontend e infraestrutura de banco.
 
 ### `src/main/webapp/WEB-INF/jsp`
 
@@ -311,6 +339,7 @@ gerenciador-chamados/                        -> raiz do projeto com código, bui
 - `unit/service` concentra regras de negócio isoladas com mocks.
 - `integration/controller/web` cobre fluxos MVC com `MockMvc`, binding e redirecionamentos.
 - `integration/repository` cobre comportamento real de consultas e atualizações no repositório.
+- O pacote `infrastructure` ainda existe na árvore de testes como estrutura remanescente/legada e deve ser mantido ou migrado conforme a evolução da organização dos testes.
 
 ## Estrutura do sistema
 
@@ -330,7 +359,7 @@ O projeto não segue uma implementação acadêmica pura de Clean Architecture, 
 
 ### Infraestrutura como detalhe de implementação
 
-- Controllers, repositories, JWT, JSP, DTOs e configurações ficam em `infrastructure`.
+- Controllers, repositories, JWT, JSP e configurações ficam em `infrastructure`.
 - Isso reforça a ideia de que web, banco e segurança são mecanismos de entrega e persistência, não o centro da regra de negócio.
 - A implementação concreta de um caso de uso, como `ChamadoService`, fica fora da definição abstrata do caso de uso.
 
@@ -354,7 +383,7 @@ O projeto não segue uma implementação acadêmica pura de Clean Architecture, 
 
 - A hierarquia `Usuario -> Administrador | Colaborador | Morador` permite estender comportamento por perfil sem reescrever a base comum.
 - Novos casos de uso podem ser adicionados com novas interfaces e serviços sem quebrar contratos existentes.
-- A decisão de usar mappers, DTOs e formulários também ajuda a estender entradas e saídas sem contaminar o domínio.
+- A decisão de separar formulários, controllers e serviços também ajuda a estender entradas e saídas sem contaminar o domínio.
 - O ponto mais forte aqui é a extensibilidade por especialização e por novos serviços.
 
 ### L - Liskov Substitution Principle
@@ -627,29 +656,6 @@ O projeto usa Flyway para versionar a estrutura do banco e a evolução das fun�
 - `V16`: limites de entrada para campos persistidos e restrições de tamanho dos anexos
 - `V17`: filtro por data de abertura e ordenação dos chamados mais antigos no topo para admin e colaborador
 - `V18`: filtros da listagem `Meus Chamados` do morador por status, unidade, tipo e data
-
-### Convenções adotadas
-
-- as migrations foram comentadas internamente para separar blocos por responsabilidade
-- os nomes versionados existentes foram preservados para não quebrar o histórico do Flyway
-- a semântica foi melhorada com cabeçalhos e seções dentro dos próprios arquivos
-
-### Cuidados ao evoluir migrations
-
-- nunca altere a ordem das versões já existentes
-- para novas mudanças, crie um novo arquivo `V{proxima_versao}__descricao.sql`
-- prefira descrições curtas e objetivas no nome do arquivo
-- agrupe o conteúdo por blocos comentados quando a migration tiver mais de uma responsabilidade técnica
-
-### Atenção em ambientes já executados
-
-Se uma migration antiga já tiver sido aplicada em algum banco, mudar o conteúdo dela pode gerar divergência de checksum no Flyway.
-
-Nesse cenário:
-
-- evite reescrever migrations já executadas em produção
-- prefira criar uma nova migration corretiva
-- se a alteração em arquivo antigo já tiver acontecido, pode ser necessário executar `flyway repair` antes de subir a aplicação
 
 ## Endpoints Web
 
