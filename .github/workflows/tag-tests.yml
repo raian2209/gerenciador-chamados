@@ -1,0 +1,98 @@
+name: Tag Tests
+
+on:
+  push:
+    tags:
+      - "*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  JAVA_VERSION: "21"
+  SPRING_DOCKER_COMPOSE_ENABLED: "false"
+
+jobs:
+  config-tests:
+    name: Config Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: maven
+
+      - name: Ensure Maven wrapper is executable
+        run: chmod +x mvnw
+
+      - name: Run configuration layer tests
+        run: ./mvnw -B -Dtest=AdminBootstrapConfigTest test
+
+  service-tests:
+    name: Service Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: maven
+
+      - name: Ensure Maven wrapper is executable
+        run: chmod +x mvnw
+
+      - name: Resolve service test classes
+        id: resolve-tests
+        run: |
+          TEST_CLASSES=$(find src/test/java/br/com/dunnastecnologia/chamados/unit/service -name '*Test.java' -printf '%f\n' | sed 's/\.java$//' | paste -sd, -)
+          if [ -z "$TEST_CLASSES" ]; then
+            echo "Nenhum teste de service encontrado."
+            exit 1
+          fi
+          echo "classes=$TEST_CLASSES" >> "$GITHUB_OUTPUT"
+
+      - name: Run service layer tests
+        run: ./mvnw -B -Dtest="${{ steps.resolve-tests.outputs.classes }}" test
+
+  web-integration-tests:
+    name: Web Integration Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: maven
+
+      - name: Ensure Maven wrapper is executable
+        run: chmod +x mvnw
+
+      - name: Resolve web integration test classes
+        id: resolve-tests
+        run: |
+          TEST_CLASSES=$(find src/test/java/br/com/dunnastecnologia/chamados/integration/controller/web -name '*IntegrationTest.java' -printf '%f\n' | sed 's/\.java$//' | paste -sd, -)
+          if [ -z "$TEST_CLASSES" ]; then
+            echo "Nenhum teste de integracao web encontrado."
+            exit 1
+          fi
+          echo "classes=$TEST_CLASSES" >> "$GITHUB_OUTPUT"
+
+      - name: Run web integration tests
+        run: ./mvnw -B -Dtest="${{ steps.resolve-tests.outputs.classes }}" test
