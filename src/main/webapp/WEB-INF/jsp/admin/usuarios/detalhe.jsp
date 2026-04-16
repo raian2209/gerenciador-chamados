@@ -22,6 +22,7 @@
 
                     <form method="post" action="${ctx}/admin/usuarios/${usuario.id}" class="stack-form">
                         <%@ include file="/WEB-INF/jsp/fragments/csrf.jspf" %>
+                        <input type="hidden" name="_method" value="patch">
                         <label class="field">
                             <span>Nome</span>
                             <input type="text" name="nome" value="${usuarioForm.nome}" maxlength="255" required>
@@ -48,8 +49,9 @@
                         </div>
                     </form>
 
-                    <form method="post" action="${ctx}/admin/usuarios/${usuario.id}/remover" data-confirm="Remover este usuario? A acao nao pode ser desfeita." class="inline-form danger-zone">
+                    <form method="post" action="${ctx}/admin/usuarios/${usuario.id}" data-confirm="Remover este usuario? A acao nao pode ser desfeita." class="inline-form danger-zone">
                         <%@ include file="/WEB-INF/jsp/fragments/csrf.jspf" %>
+                        <input type="hidden" name="_method" value="delete">
                         <button type="submit" class="btn btn-danger">Remover usuario</button>
                     </form>
                 </article>
@@ -77,8 +79,9 @@
                                                 <strong>${unidade.identificacao}</strong>
                                                 <span>${unidade.blocoIdentificacao} - Andar ${unidade.andar}</span>
                                             </div>
-                                            <form method="post" action="${ctx}/admin/moradores/${usuario.id}/unidades/${unidade.id}/desvincular" data-confirm="Desvincular esta unidade do morador?" class="inline-form">
+                                            <form method="post" action="${ctx}/admin/moradores/${usuario.id}/unidades/${unidade.id}" data-confirm="Desvincular esta unidade do morador?" class="inline-form">
                                                 <%@ include file="/WEB-INF/jsp/fragments/csrf.jspf" %>
+                                                <input type="hidden" name="_method" value="delete">
                                                 <c:if test="${not empty blocoSelecionadoId}">
                                                     <input type="hidden" name="blocoId" value="${blocoSelecionadoId}">
                                                 </c:if>
@@ -107,8 +110,9 @@
                         </form>
 
                         <c:if test="${not empty unidadesBloco}">
-                            <form method="post" action="${ctx}/admin/moradores/${usuario.id}/unidades/vincular" class="stack-form compact-form">
+                            <form method="post" action="${ctx}/admin/moradores/${usuario.id}/unidades" class="stack-form compact-form">
                                 <%@ include file="/WEB-INF/jsp/fragments/csrf.jspf" %>
+                                <input type="hidden" name="_method" value="put">
                                 <input type="hidden" name="blocoId" value="${blocoSelecionadoId}">
                                 <label class="field">
                                     <span>Selecionar unidade</span>
@@ -176,8 +180,9 @@
                                                 <strong>${tipoChamado.titulo}</strong>
                                                 <span>Prazo: ${tipoChamado.prazoHoras}h</span>
                                             </div>
-                                            <form method="post" action="${ctx}/admin/colaboradores/${usuario.id}/tipos-chamado/${tipoChamado.id}/remover" data-confirm="Desvincular este tipo de chamado do colaborador?" class="inline-form">
+                                            <form method="post" action="${ctx}/admin/colaboradores/${usuario.id}/tipos-chamado/${tipoChamado.id}" data-confirm="Desvincular este tipo de chamado do colaborador?" class="inline-form">
                                                 <%@ include file="/WEB-INF/jsp/fragments/csrf.jspf" %>
+                                                <input type="hidden" name="_method" value="delete">
                                                 <button type="submit" class="btn btn-danger">Desvincular</button>
                                             </form>
                                         </div>
@@ -190,6 +195,7 @@
 
                         <form method="post" action="${ctx}/admin/colaboradores/${usuario.id}/tipos-chamado" class="stack-form compact-form">
                             <%@ include file="/WEB-INF/jsp/fragments/csrf.jspf" %>
+                            <input type="hidden" name="_method" value="put">
                             <label class="field">
                                 <span>Selecionar tipo de chamado</span>
                                 <select name="tipoChamadoId" required>

@@ -36,6 +36,7 @@
                     <c:if test="${not chamado.finalizado}">
                         <form method="post" action="${ctx}/admin/chamados/${chamado.id}/status" class="inline-panel">
                             <%@ include file="/WEB-INF/jsp/fragments/csrf.jspf" %>
+                            <input type="hidden" name="_method" value="patch">
                             <label class="field">
                                 <span>Atualizar status</span>
                                 <select name="statusId" required>

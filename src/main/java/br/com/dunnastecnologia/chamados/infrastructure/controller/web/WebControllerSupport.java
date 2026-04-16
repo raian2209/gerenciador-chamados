@@ -11,9 +11,14 @@ import br.com.dunnastecnologia.chamados.domain.model.Unidade;
 import br.com.dunnastecnologia.chamados.domain.model.Usuario;
 import br.com.dunnastecnologia.chamados.infrastructure.exception.UnauthorizedOperationException;
 import br.com.dunnastecnologia.chamados.infrastructure.security.adapter.UserDetailsImpl;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -52,8 +57,14 @@ public class WebControllerSupport {
     }
 
     public org.springframework.data.domain.PageRequest pageRequest(Integer page, Integer size) {
-        int resolvedPage = page == null || page < 0 ? DEFAULT_PAGE : page;
-        int resolvedSize = size == null || size <= 0 ? DEFAULT_SIZE : Math.min(size, MAX_SIZE);
+        int resolvedPage = page == null || page < 0
+                ? DEFAULT_PAGE
+                : page;
+
+        int resolvedSize = size == null || size <= 0
+                ? DEFAULT_SIZE
+                : Math.min(size, MAX_SIZE);
+
         return org.springframework.data.domain.PageRequest.of(resolvedPage, resolvedSize);
     }
 
@@ -209,6 +220,45 @@ public class WebControllerSupport {
         return values;
     }
 
+    public UploadedFileData optionalUploadedFile(MultipartFile arquivo, String errorMessage) {
+        if (arquivo == null || arquivo.isEmpty()) {
+            return null;
+        }
+        return uploadedFile(arquivo, errorMessage);
+    }
+
+    public UploadedFileData requiredUploadedFile(
+            MultipartFile arquivo,
+            String emptyFileMessage,
+            String errorMessage
+    ) {
+        if (arquivo == null || arquivo.isEmpty()) {
+            throw new IllegalArgumentException(emptyFileMessage);
+        }
+        return uploadedFile(arquivo, errorMessage);
+    }
+
+    public ResponseEntity<byte[]> downloadResponse(
+            String nomeArquivo,
+            String contentType,
+            long tamanhoBytes,
+            byte[] conteudo
+    ) {
+        MediaType mediaType = MediaType.APPLICATION_OCTET_STREAM;
+        if (contentType != null && !contentType.isBlank()) {
+            mediaType = MediaType.parseMediaType(contentType);
+        }
+
+        return ResponseEntity.ok()
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment().filename(nomeArquivo).build().toString()
+                )
+                .contentType(mediaType)
+                .contentLength(tamanhoBytes)
+                .body(conteudo);
+    }
+
     private String formatDateTime(LocalDateTime value) {
         if (value == null) {
             return null;
@@ -226,5 +276,26 @@ public class WebControllerSupport {
         }
         double megabytes = kilobytes / 1024.0;
         return String.format(Locale.US, "%.1f MB", megabytes);
+    }
+
+    private UploadedFileData uploadedFile(MultipartFile arquivo, String errorMessage) {
+        try {
+            return new UploadedFileData(
+                    arquivo.getOriginalFilename(),
+                    arquivo.getContentType(),
+                    arquivo.getSize(),
+                    arquivo.getBytes()
+            );
+        } catch (Exception exception) {
+            throw new IllegalArgumentException(errorMessage, exception);
+        }
+    }
+
+    public record UploadedFileData(
+            String nomeArquivo,
+            String contentType,
+            long tamanhoBytes,
+            byte[] conteudo
+    ) {
     }
 }

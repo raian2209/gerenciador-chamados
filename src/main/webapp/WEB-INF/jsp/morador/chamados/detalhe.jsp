@@ -33,6 +33,7 @@
                     <c:if test="${chamado.finalizado}">
                         <form method="post" action="${ctx}/morador/chamados/${chamado.id}/reabrir" class="inline-form" data-confirm="Reabrir este chamado?">
                             <%@ include file="/WEB-INF/jsp/fragments/csrf.jspf" %>
+                            <input type="hidden" name="_method" value="patch">
                             <button type="submit" class="btn btn-primary">Reabrir chamado</button>
                         </form>
                     </c:if>

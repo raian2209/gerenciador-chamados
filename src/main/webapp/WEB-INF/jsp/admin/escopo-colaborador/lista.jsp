@@ -65,8 +65,9 @@
                                                 <strong>${tipoChamado.titulo}</strong>
                                                 <span>Prazo: ${tipoChamado.prazoHoras}h</span>
                                             </div>
-                                            <form method="post" action="${ctx}/admin/colaboradores/${colaboradorSelecionado.id}/tipos-chamado/${tipoChamado.id}/remover?dashboard=true" data-confirm="Desvincular este tipo de chamado do colaborador?" class="inline-form">
+                                            <form method="post" action="${ctx}/admin/colaboradores/${colaboradorSelecionado.id}/tipos-chamado/${tipoChamado.id}?dashboard=true" data-confirm="Desvincular este tipo de chamado do colaborador?" class="inline-form">
                                                 <%@ include file="/WEB-INF/jsp/fragments/csrf.jspf" %>
+                                                <input type="hidden" name="_method" value="delete">
                                                 <button type="submit" class="btn btn-danger">Desvincular</button>
                                             </form>
                                         </div>
@@ -79,6 +80,7 @@
 
                         <form method="post" action="${ctx}/admin/colaboradores/${colaboradorSelecionado.id}/tipos-chamado?dashboard=true" class="stack-form compact-form">
                             <%@ include file="/WEB-INF/jsp/fragments/csrf.jspf" %>
+                            <input type="hidden" name="_method" value="put">
                             <label class="field">
                                 <span>Selecionar tipo de chamado</span>
                                 <select name="tipoChamadoId" required>

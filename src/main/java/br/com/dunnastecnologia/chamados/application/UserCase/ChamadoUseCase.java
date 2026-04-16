@@ -70,16 +70,6 @@ public interface ChamadoUseCase {
             UUID statusId
     );
 
-    Chamado finalizarComoAdmin(
-            AuthenticatedUser admin,
-            UUID chamadoId
-    );
-
-    Chamado finalizarComoColaborador(
-            AuthenticatedUser colaborador,
-            UUID chamadoId
-    );
-
     Chamado reabrirComoMorador(
             AuthenticatedUser morador,
             UUID chamadoId

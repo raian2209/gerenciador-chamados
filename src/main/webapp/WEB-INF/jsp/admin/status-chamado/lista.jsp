@@ -26,6 +26,9 @@
 
                     <form method="post" action="${statusChamadoAction}" class="stack-form">
                         <%@ include file="/WEB-INF/jsp/fragments/csrf.jspf" %>
+                        <c:if test="${not empty statusEdicao}">
+                            <input type="hidden" name="_method" value="patch">
+                        </c:if>
                         <label class="field">
                             <span>Nome do status</span>
                             <input type="text" name="nome" value="${statusChamadoForm.nome}" placeholder="Em atendimento" maxlength="255" required ${statusEdicaoBloqueada ? 'disabled' : ''}>
@@ -76,6 +79,7 @@
                                             </c:if>
                                             <form method="post" action="${ctx}/admin/status-chamado/${status.id}/inicial-padrao" class="inline-form" data-confirm="Definir este status como inicial padrao?">
                                                 <%@ include file="/WEB-INF/jsp/fragments/csrf.jspf" %>
+                                                <input type="hidden" name="_method" value="patch">
                                                 <button type="submit" class="btn btn-primary" ${status.inicialPadrao ? 'disabled' : ''}>
                                                     Tornar padrao
                                                 </button>

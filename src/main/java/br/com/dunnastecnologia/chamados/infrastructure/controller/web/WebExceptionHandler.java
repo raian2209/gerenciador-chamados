@@ -3,6 +3,7 @@ package br.com.dunnastecnologia.chamados.infrastructure.controller.web;
 import br.com.dunnastecnologia.chamados.infrastructure.exception.BusinessRuleException;
 import br.com.dunnastecnologia.chamados.infrastructure.exception.ResourceNotFoundException;
 import br.com.dunnastecnologia.chamados.infrastructure.exception.UnauthorizedOperationException;
+import io.swagger.v3.oas.annotations.Hidden;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -17,6 +18,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
         MoradorWebController.class,
         ColaboradorWebController.class
 })
+@Hidden
 public class WebExceptionHandler {
 
     private final WebControllerSupport support;

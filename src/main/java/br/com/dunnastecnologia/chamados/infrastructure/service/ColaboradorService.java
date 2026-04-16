@@ -86,12 +86,6 @@ public class ColaboradorService implements ColaboradorUseCases {
 
     @Override
     @Transactional
-    public Chamado finalizarChamado(AuthenticatedUser colaborador, UUID chamadoId) {
-        return chamadoService.finalizarComoColaborador(colaborador, chamadoId);
-    }
-
-    @Override
-    @Transactional
     public Comentario comentarChamado(AuthenticatedUser colaborador, UUID chamadoId, String mensagem) {
         return comentarioService.comentar(colaborador, chamadoId, mensagem);
     }

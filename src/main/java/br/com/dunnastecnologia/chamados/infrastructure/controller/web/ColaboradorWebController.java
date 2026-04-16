@@ -1,29 +1,24 @@
 package br.com.dunnastecnologia.chamados.infrastructure.controller.web;
 
-import br.com.dunnastecnologia.chamados.application.UserCase.ColaboradorUseCases;
 import br.com.dunnastecnologia.chamados.application.UserCase.AnexoChamadoUseCases;
-import br.com.dunnastecnologia.chamados.application.UserCase.AnexoComentarioUseCases;
+import br.com.dunnastecnologia.chamados.application.UserCase.ColaboradorUseCases;
 import br.com.dunnastecnologia.chamados.application.UserCase.ComentarioUseCase;
 import br.com.dunnastecnologia.chamados.infrastructure.controller.web.form.AtualizarStatusForm;
 import br.com.dunnastecnologia.chamados.infrastructure.controller.web.form.ComentarioForm;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
-import org.springframework.http.ContentDisposition;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.time.LocalDate;
 import java.util.UUID;
@@ -35,20 +30,17 @@ public class ColaboradorWebController {
 
     private final ColaboradorUseCases colaboradorUseCases;
     private final AnexoChamadoUseCases anexoChamadoUseCases;
-    private final AnexoComentarioUseCases anexoComentarioUseCases;
     private final ComentarioUseCase comentarioUseCase;
     private final WebControllerSupport support;
 
     public ColaboradorWebController(
             ColaboradorUseCases colaboradorUseCases,
             AnexoChamadoUseCases anexoChamadoUseCases,
-            AnexoComentarioUseCases anexoComentarioUseCases,
             ComentarioUseCase comentarioUseCase,
             WebControllerSupport support
     ) {
         this.colaboradorUseCases = colaboradorUseCases;
         this.anexoChamadoUseCases = anexoChamadoUseCases;
-        this.anexoComentarioUseCases = anexoComentarioUseCases;
         this.comentarioUseCase = comentarioUseCase;
         this.support = support;
     }
@@ -65,6 +57,11 @@ public class ColaboradorWebController {
 
     @GetMapping
     @Transactional(readOnly = true)
+    @Operation(summary = "Exibe o dashboard do colaborador", tags = "10 - Colaborador Web - Paginas")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Pagina inicial do colaborador renderizada com sucesso."),
+            @ApiResponse(responseCode = "403", description = "Acesso negado para o perfil autenticado.")
+    })
     public String dashboard(
             Authentication authentication,
             Model model
@@ -90,6 +87,11 @@ public class ColaboradorWebController {
 
     @GetMapping("/chamados")
     @Transactional(readOnly = true)
+    @Operation(summary = "Lista a fila de chamados do colaborador com filtros e paginacao", tags = "10 - Colaborador Web - Paginas")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Pagina de chamados do colaborador renderizada com sucesso."),
+            @ApiResponse(responseCode = "403", description = "Acesso negado para o perfil autenticado.")
+    })
     public String listarChamados(
             Authentication authentication,
             @RequestParam(required = false) UUID statusId,
@@ -126,6 +128,12 @@ public class ColaboradorWebController {
 
     @GetMapping("/chamados/{chamadoId}")
     @Transactional(readOnly = true)
+    @Operation(summary = "Exibe o detalhe de um chamado no escopo do colaborador", tags = "10 - Colaborador Web - Paginas")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Pagina de detalhe do chamado renderizada com sucesso."),
+            @ApiResponse(responseCode = "403", description = "Acesso negado para o perfil autenticado."),
+            @ApiResponse(responseCode = "404", description = "Chamado nao encontrado no escopo do colaborador.")
+    })
     public String detalharChamado(
             Authentication authentication,
             @PathVariable UUID chamadoId,
@@ -153,128 +161,5 @@ public class ColaboradorWebController {
                         .toList()
         );
         return "colaborador/chamados/detalhe";
-    }
-
-    @PostMapping("/chamados/{chamadoId}/status")
-    public String atualizarStatus(
-            Authentication authentication,
-            @PathVariable UUID chamadoId,
-            @ModelAttribute AtualizarStatusForm atualizarStatusForm,
-            RedirectAttributes redirectAttributes
-    ) {
-        var chamadoAtualizado = colaboradorUseCases.atualizarStatusChamado(
-                support.authenticatedUser(authentication),
-                chamadoId,
-                atualizarStatusForm.getStatusId()
-        );
-        redirectAttributes.addFlashAttribute("successMessage", "Status atualizado.");
-        if (chamadoAtualizado.getDataFinalizacao() != null) {
-            return "redirect:/colaborador/chamados";
-        }
-        return "redirect:/colaborador/chamados/" + chamadoId;
-    }
-
-    @PostMapping("/chamados/{chamadoId}/finalizar")
-    public String finalizarChamado(
-            Authentication authentication,
-            @PathVariable UUID chamadoId,
-            RedirectAttributes redirectAttributes
-    ) {
-        colaboradorUseCases.finalizarChamado(support.authenticatedUser(authentication), chamadoId);
-        redirectAttributes.addFlashAttribute("successMessage", "Chamado finalizado.");
-        return "redirect:/colaborador/chamados";
-    }
-
-    @PostMapping("/chamados/{chamadoId}/comentarios")
-    public String comentarChamado(
-            Authentication authentication,
-            @PathVariable UUID chamadoId,
-            @ModelAttribute ComentarioForm comentarioForm,
-            @RequestParam(name = "arquivo", required = false) MultipartFile arquivo,
-            RedirectAttributes redirectAttributes
-    ) {
-        var currentUser = support.authenticatedUser(authentication);
-        var comentario = colaboradorUseCases.comentarChamado(
-                currentUser,
-                chamadoId,
-                comentarioForm.getMensagem()
-        );
-
-        if (arquivo != null && !arquivo.isEmpty()) {
-            try {
-                anexoComentarioUseCases.adicionarAnexoAoComentario(
-                        currentUser,
-                        chamadoId,
-                        comentario.getId(),
-                        arquivo.getOriginalFilename(),
-                        arquivo.getContentType(),
-                        arquivo.getSize(),
-                        arquivo.getBytes()
-                );
-            } catch (Exception exception) {
-                throw new IllegalArgumentException("Nao foi possivel anexar o arquivo ao comentario.", exception);
-            }
-        }
-
-        redirectAttributes.addFlashAttribute("successMessage", "Comentario registrado.");
-        return "redirect:/colaborador/chamados/" + chamadoId;
-    }
-
-    @GetMapping("/chamados/{chamadoId}/comentarios/{comentarioId}/anexos/{anexoId}")
-    @Transactional(readOnly = true)
-    public ResponseEntity<byte[]> baixarAnexoDoComentario(
-            Authentication authentication,
-            @PathVariable UUID chamadoId,
-            @PathVariable UUID comentarioId,
-            @PathVariable UUID anexoId
-    ) {
-        var anexo = anexoComentarioUseCases.buscarAnexoPorId(
-                support.authenticatedUser(authentication),
-                chamadoId,
-                comentarioId,
-                anexoId
-        );
-
-        MediaType mediaType = MediaType.APPLICATION_OCTET_STREAM;
-        if (anexo.contentType() != null && !anexo.contentType().isBlank()) {
-            mediaType = MediaType.parseMediaType(anexo.contentType());
-        }
-
-        return ResponseEntity.ok()
-                .header(
-                        HttpHeaders.CONTENT_DISPOSITION,
-                        ContentDisposition.attachment().filename(anexo.nomeArquivo()).build().toString()
-                )
-                .contentType(mediaType)
-                .contentLength(anexo.tamanhoBytes())
-                .body(anexo.conteudo());
-    }
-
-    @GetMapping("/chamados/{chamadoId}/anexos/{anexoId}")
-    @Transactional(readOnly = true)
-    public ResponseEntity<byte[]> baixarAnexo(
-            Authentication authentication,
-            @PathVariable UUID chamadoId,
-            @PathVariable UUID anexoId
-    ) {
-        var anexo = anexoChamadoUseCases.buscarAnexoPorId(
-                support.authenticatedUser(authentication),
-                chamadoId,
-                anexoId
-        );
-
-        MediaType mediaType = MediaType.APPLICATION_OCTET_STREAM;
-        if (anexo.contentType() != null && !anexo.contentType().isBlank()) {
-            mediaType = MediaType.parseMediaType(anexo.contentType());
-        }
-
-        return ResponseEntity.ok()
-                .header(
-                        HttpHeaders.CONTENT_DISPOSITION,
-                        ContentDisposition.attachment().filename(anexo.nomeArquivo()).build().toString()
-                )
-                .contentType(mediaType)
-                .contentLength(anexo.tamanhoBytes())
-                .body(anexo.conteudo());
     }
 }

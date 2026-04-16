@@ -83,8 +83,9 @@
                                             <td><span class="status-pill neutral">${usuario.tipo}</span></td>
                                             <td class="cell-actions">
                                                 <a href="${ctx}/admin/usuarios/${usuario.id}" class="btn btn-link">Gerenciar</a>
-                                                <form method="post" action="${ctx}/admin/usuarios/${usuario.id}/remover" onsubmit="return confirm('Deseja desativar este usuario?');">
+                                                <form method="post" action="${ctx}/admin/usuarios/${usuario.id}" onsubmit="return confirm('Deseja desativar este usuario?');">
                                                     <%@ include file="/WEB-INF/jsp/fragments/csrf.jspf" %>
+                                                    <input type="hidden" name="_method" value="delete">
                                                     <button type="submit" class="btn btn-secondary">Desativar</button>
                                                 </form>
                                             </td>

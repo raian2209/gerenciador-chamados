@@ -1,6 +1,7 @@
 package br.com.dunnastecnologia.chamados.infrastructure.controller.web;
 
 import br.com.dunnastecnologia.chamados.application.Security.AuthenticatedUser;
+import io.swagger.v3.oas.annotations.Hidden;
 import org.springframework.security.core.Authentication;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
         MoradorWebController.class,
         ColaboradorWebController.class
 })
+@Hidden
 public class WebModelAttributeAdvice {
 
     private final WebControllerSupport support;

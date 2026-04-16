@@ -71,7 +71,18 @@ public class SecurityConfig {
         @Bean
         public SecurityFilterChain staticResourceFilterChain(HttpSecurity http) throws Exception {
             return http
-                    .securityMatcher("/css/**", "/js/**", "/images/**", "/webjars/**", "/favicon.ico")
+                    .securityMatcher(
+                            "/css/**",
+                            "/js/**",
+                            "/images/**",
+                            "/webjars/**",
+                            "/favicon.ico",
+                            "/swagger-ui.html",
+                            "/swagger-ui/**",
+                            "/v3/api-docs",
+                            "/v3/api-docs/**",
+                            "/v3/api-docs.yaml"
+                    )
                     .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
                     .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                     .csrf(AbstractHttpConfigurer::disable)
@@ -124,7 +135,18 @@ public class SecurityConfig {
             http
                     .authorizeHttpRequests(auth -> auth
                             .dispatcherTypeMatchers(DispatcherType.FORWARD).permitAll()
-                            .requestMatchers("/", "/login", "/logout", "/error", "/public/**").permitAll()
+                            .requestMatchers(
+                                    "/",
+                                    "/login",
+                                    "/logout",
+                                    "/error",
+                                    "/public/**",
+                                    "/swagger-ui.html",
+                                    "/swagger-ui/**",
+                                    "/v3/api-docs",
+                                    "/v3/api-docs/**",
+                                    "/v3/api-docs.yaml"
+                            ).permitAll()
                             .anyRequest().authenticated()
                     )
                     .csrf(csrf -> csrf

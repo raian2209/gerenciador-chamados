@@ -25,6 +25,9 @@
 
                     <form method="post" action="${tipoChamadoAction}" class="stack-form">
                         <%@ include file="/WEB-INF/jsp/fragments/csrf.jspf" %>
+                        <c:if test="${not empty tipoChamadoEdicao}">
+                            <input type="hidden" name="_method" value="patch">
+                        </c:if>
                         <label class="field">
                             <span>Titulo</span>
                             <input type="text" name="titulo" value="${tipoChamadoForm.titulo}" placeholder="Vazamento" maxlength="255" required>

@@ -189,22 +189,6 @@ public class ChamadoService implements ChamadoUseCase {
 
     @Override
     @Transactional
-    public Chamado finalizarComoAdmin(AuthenticatedUser admin, UUID chamadoId) {
-        authenticatedUserValidator.assertAdministrador(admin);
-        Chamado chamado = buscarChamadoParaAdmin(admin, chamadoId);
-        return finalizarChamado(chamado);
-    }
-
-    @Override
-    @Transactional
-    public Chamado finalizarComoColaborador(AuthenticatedUser colaborador, UUID chamadoId) {
-        authenticatedUserValidator.assertColaborador(colaborador);
-        Chamado chamado = buscarChamadoParaColaborador(colaborador, chamadoId);
-        return finalizarChamado(chamado);
-    }
-
-    @Override
-    @Transactional
     public Chamado reabrirComoMorador(AuthenticatedUser morador, UUID chamadoId) {
         authenticatedUserValidator.assertMorador(morador);
         Chamado chamado = buscarChamadoDoMorador(morador, chamadoId);
@@ -223,19 +207,6 @@ public class ChamadoService implements ChamadoUseCase {
         if (STATUS_FINALIZADO.equals(status.getNome())) {
             chamado.setDataFinalizacao(LocalDateTime.now());
         }
-        return chamadoRepository.save(chamado);
-    }
-
-    private Chamado finalizarChamado(Chamado chamado) {
-        if (chamado.getDataFinalizacao() != null) {
-            throw new BusinessRuleException("Chamado ja foi finalizado");
-        }
-
-        StatusChamado statusFinalizado = statusChamadoRepository.findByNome(STATUS_FINALIZADO)
-                .orElseThrow(() -> new BusinessRuleException("Status Finalizado nao foi configurado"));
-
-        chamado.setStatus(statusFinalizado);
-        chamado.setDataFinalizacao(LocalDateTime.now());
         return chamadoRepository.save(chamado);
     }
 

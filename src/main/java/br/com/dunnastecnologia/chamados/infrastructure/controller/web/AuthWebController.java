@@ -1,6 +1,8 @@
 package br.com.dunnastecnologia.chamados.infrastructure.controller.web;
 
-import org.springframework.security.core.Authentication;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -8,14 +10,12 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class AuthWebController {
 
-    private final WebControllerSupport support;
-
-    public AuthWebController(WebControllerSupport support) {
-        this.support = support;
-    }
-
+    @Operation(summary = "Exibe a tela de login", tags = "01 - Publico Web - Paginas")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Pagina de login renderizada com sucesso.")
+    })
     @GetMapping({"/login", "/login/"})
-    public String login(Authentication authentication, Model model) {
+    public String login(Model model) {
         model.addAttribute("pageTitle", "Login");
         return "auth/login";
     }

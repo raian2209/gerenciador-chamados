@@ -62,15 +62,6 @@ public interface ColaboradorUseCases {
     );
 
     /**
-     *  para encerrar formalmente o chamado, registrando o momento de finalizacao
-     * quando o atendimento for concluido.
-     */
-    Chamado finalizarChamado(
-            AuthenticatedUser colaborador,
-            UUID chamadoId
-    );
-
-    /**
      *  para que o colaborador registre interacoes no historico do chamado
      * sempre respeitando o proprio escopo de acesso.
      */

@@ -304,12 +304,6 @@ public class AdminService implements AdminUseCases {
 
     @Override
     @Transactional
-    public Chamado finalizarChamado(AuthenticatedUser admin, UUID chamadoId) {
-        return chamadoService.finalizarComoAdmin(admin, chamadoId);
-    }
-
-    @Override
-    @Transactional
     public Comentario comentarChamado(AuthenticatedUser admin, UUID chamadoId, String mensagem) {
         return comentarioService.comentar(admin, chamadoId, mensagem);
     }

@@ -79,8 +79,9 @@
                                                 <strong>${unidade.identificacao}</strong>
                                                 <span>${unidade.blocoIdentificacao} - Andar ${unidade.andar}</span>
                                             </div>
-                                            <form method="post" action="${ctx}/admin/moradores/${moradorSelecionadoId}/unidades/${unidade.id}/desvincular?dashboard=true" data-confirm="Desvincular esta unidade do morador?" class="inline-form">
+                                            <form method="post" action="${ctx}/admin/moradores/${moradorSelecionadoId}/unidades/${unidade.id}?dashboard=true" data-confirm="Desvincular esta unidade do morador?" class="inline-form">
                                                 <%@ include file="/WEB-INF/jsp/fragments/csrf.jspf" %>
+                                                <input type="hidden" name="_method" value="delete">
                                                 <c:if test="${not empty blocoSelecionadoId}">
                                                     <input type="hidden" name="blocoId" value="${blocoSelecionadoId}">
                                                 </c:if>
@@ -94,8 +95,9 @@
 
                         <c:if test="${not empty unidadesBloco}">
                             <div class="divider"></div>
-                            <form method="post" action="${ctx}/admin/moradores/${moradorSelecionadoId}/unidades/vincular?dashboard=true" class="stack-form compact-form">
+                            <form method="post" action="${ctx}/admin/moradores/${moradorSelecionadoId}/unidades?dashboard=true" class="stack-form compact-form">
                                 <%@ include file="/WEB-INF/jsp/fragments/csrf.jspf" %>
+                                <input type="hidden" name="_method" value="put">
                                 <input type="hidden" name="blocoId" value="${blocoSelecionadoId}">
                                 <label class="field">
                                     <span>Unidade do bloco selecionado</span>

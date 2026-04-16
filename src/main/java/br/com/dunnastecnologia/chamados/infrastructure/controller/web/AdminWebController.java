@@ -2,10 +2,8 @@ package br.com.dunnastecnologia.chamados.infrastructure.controller.web;
 
 import br.com.dunnastecnologia.chamados.application.UserCase.AdminUseCases;
 import br.com.dunnastecnologia.chamados.application.UserCase.AnexoChamadoUseCases;
-import br.com.dunnastecnologia.chamados.application.UserCase.AnexoComentarioUseCases;
 import br.com.dunnastecnologia.chamados.application.UserCase.ComentarioUseCase;
 import br.com.dunnastecnologia.chamados.application.pagination.PageResult;
-import br.com.dunnastecnologia.chamados.domain.model.Administrador;
 import br.com.dunnastecnologia.chamados.domain.model.Colaborador;
 import br.com.dunnastecnologia.chamados.domain.model.Morador;
 import br.com.dunnastecnologia.chamados.domain.model.Unidade;
@@ -19,30 +17,26 @@ import br.com.dunnastecnologia.chamados.infrastructure.controller.web.form.Usuar
 import br.com.dunnastecnologia.chamados.infrastructure.controller.web.form.VincularColaboradorTipoChamadoForm;
 import br.com.dunnastecnologia.chamados.infrastructure.controller.web.form.VincularMoradorUnidadeForm;
 import br.com.dunnastecnologia.chamados.infrastructure.exception.BusinessRuleException;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
-import org.springframework.http.ContentDisposition;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.time.LocalDate;
 import java.util.stream.Collectors;
 
 @Controller
@@ -50,24 +44,22 @@ import java.util.stream.Collectors;
 @PreAuthorize("hasRole('ADMINISTRADOR')")
 public class AdminWebController {
 
+    private static final int LOOKUP_PAGE_SIZE = 100;
     private static final Set<String> STATUS_RESERVADOS = Set.of("Finalizado", "Atrasado", "Solicitado");
 
     private final AdminUseCases adminUseCases;
     private final AnexoChamadoUseCases anexoChamadoUseCases;
-    private final AnexoComentarioUseCases anexoComentarioUseCases;
     private final ComentarioUseCase comentarioUseCase;
     private final WebControllerSupport support;
 
     public AdminWebController(
             AdminUseCases adminUseCases,
             AnexoChamadoUseCases anexoChamadoUseCases,
-            AnexoComentarioUseCases anexoComentarioUseCases,
             ComentarioUseCase comentarioUseCase,
             WebControllerSupport support
     ) {
         this.adminUseCases = adminUseCases;
         this.anexoChamadoUseCases = anexoChamadoUseCases;
-        this.anexoComentarioUseCases = anexoComentarioUseCases;
         this.comentarioUseCase = comentarioUseCase;
         this.support = support;
     }
@@ -121,6 +113,11 @@ public class AdminWebController {
         );
     }
 
+    @Operation(summary = "Exibe o dashboard do administrador", tags = "02 - Admin Web - Paginas")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Pagina inicial do administrador renderizada com sucesso."),
+            @ApiResponse(responseCode = "403", description = "Acesso negado para o perfil autenticado.")
+    })
     @GetMapping({"", "/"})
     @Transactional(readOnly = true)
     public String dashboard(
@@ -132,13 +129,14 @@ public class AdminWebController {
         PageResult<?> usuarios = adminUseCases.listarUsuarios(support.pageRequest(0, 1));
         PageResult<?> tipos = adminUseCases.listarTiposChamado(support.pageRequest(0, 1));
         PageResult<?> status = adminUseCases.listarStatus(support.pageRequest(0, 1));
-        var statusDisponiveis = adminUseCases.listarStatus(support.pageRequest(0, 100));
+        var statusDisponiveis = adminUseCases.listarStatus(lookupPageRequest());
         var chamados = adminUseCases.buscarChamados(currentUser, null, null, null, support.pageRequest(0, 5));
         UUID statusAtrasadoId = statusDisponiveis.content().stream()
                 .filter(statusChamado -> "Atrasado".equalsIgnoreCase(statusChamado.getNome()))
                 .map(br.com.dunnastecnologia.chamados.domain.model.StatusChamado::getId)
                 .findFirst()
                 .orElse(null);
+
         long totalChamadosAtrasados = statusAtrasadoId == null
                 ? 0
                 : adminUseCases.buscarChamados(currentUser, statusAtrasadoId, null, null, support.pageRequest(0, 1)).totalElements();
@@ -154,6 +152,12 @@ public class AdminWebController {
         return "admin/dashboard";
     }
 
+    @Operation(summary = "Exibe a tela de vinculo entre moradores e unidades", tags = "02 - Admin Web - Paginas")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Pagina de vinculo entre moradores e unidades renderizada com sucesso."),
+            @ApiResponse(responseCode = "403", description = "Acesso negado para o perfil autenticado."),
+            @ApiResponse(responseCode = "404", description = "Morador ou bloco informado nao encontrado.")
+    })
     @GetMapping({"/vinculos-morador", "/vinculos-morador/"})
     @Transactional(readOnly = true)
     public String gerenciarVinculosMorador(
@@ -168,12 +172,11 @@ public class AdminWebController {
             @RequestParam(defaultValue = "10") Integer semUnidadeSize,
             Model model
     ) {
-        var moradores = adminUseCases.listarMoradoresPorPrefixoEmail(moradorEmail, support.pageRequest(0, 100));
+        var moradores = adminUseCases.listarMoradoresPorPrefixoEmail(moradorEmail, lookupPageRequest());
         var moradoresCadastrados = adminUseCases.listarMoradoresPorPrefixoEmail(
                 cadastradosEmail,
                 support.pageRequest(cadastradosPage, cadastradosSize)
         );
-        var blocos = adminUseCases.listarBlocos(support.pageRequest(0, 100));
         var moradoresSemUnidade = adminUseCases.listarMoradoresSemUnidadePorPrefixoEmail(
                 semUnidadeEmail,
                 support.pageRequest(semUnidadePage, semUnidadeSize)
@@ -183,7 +186,7 @@ public class AdminWebController {
         model.addAttribute("moradoresDisponiveis", support.mapContent(moradores.content(), support::toUsuarioMap));
         model.addAttribute("moradoresCadastrados", support.mapContent(moradoresCadastrados.content(), support::toUsuarioMap));
         model.addAttribute("moradoresCadastradosPage", support.pageMetadata(moradoresCadastrados));
-        model.addAttribute("blocosDisponiveis", support.mapContent(blocos.content(), support::toBlocoMap));
+        carregarBlocosDisponiveis(model);
         model.addAttribute("moradoresSemUnidade", support.mapContent(moradoresSemUnidade.content(), support::toUsuarioMap));
         model.addAttribute("moradoresSemUnidadePage", support.pageMetadata(moradoresSemUnidade));
         model.addAttribute("moradorSelecionadoId", moradorId);
@@ -199,6 +202,12 @@ public class AdminWebController {
         return "admin/vinculos-morador/lista";
     }
 
+    @Operation(summary = "Exibe a tela de definicao de escopo do colaborador", tags = "02 - Admin Web - Paginas")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Pagina de escopo do colaborador renderizada com sucesso."),
+            @ApiResponse(responseCode = "403", description = "Acesso negado para o perfil autenticado."),
+            @ApiResponse(responseCode = "404", description = "Colaborador informado nao encontrado.")
+    })
     @GetMapping({"/escopo-colaborador", "/escopo-colaborador/"})
     @Transactional(readOnly = true)
     public String gerenciarEscopoColaborador(
@@ -208,13 +217,12 @@ public class AdminWebController {
     ) {
         var colaboradores = adminUseCases.listarColaboradoresPorPrefixoEmail(
                 colaboradorEmail,
-                support.pageRequest(0, 100)
+                lookupPageRequest()
         );
-        var tiposChamado = adminUseCases.listarTiposChamado(support.pageRequest(0, 100));
 
         model.addAttribute("pageTitle", "Designar Colaborador");
         model.addAttribute("colaboradoresDisponiveis", support.mapContent(colaboradores.content(), support::toUsuarioMap));
-        model.addAttribute("tiposChamadoDisponiveis", support.mapContent(tiposChamado.content(), support::toTipoChamadoMap));
+        carregarTiposChamadoDisponiveis(model);
         model.addAttribute("colaboradorSelecionadoId", colaboradorId);
         model.addAttribute("filtroColaboradorEmail", colaboradorEmail);
 
@@ -225,6 +233,11 @@ public class AdminWebController {
         return "admin/escopo-colaborador/lista";
     }
 
+    @Operation(summary = "Lista os blocos cadastrados", tags = "02 - Admin Web - Paginas")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Pagina de listagem de blocos renderizada com sucesso."),
+            @ApiResponse(responseCode = "403", description = "Acesso negado para o perfil autenticado.")
+    })
     @GetMapping({"/blocos", "/blocos/"})
     @Transactional(readOnly = true)
     public String listarBlocos(
@@ -239,22 +252,12 @@ public class AdminWebController {
         return "admin/blocos/lista";
     }
 
-    @PostMapping("/blocos")
-    public String cadastrarBloco(
-            Authentication authentication,
-            @ModelAttribute BlocoForm blocoForm,
-            RedirectAttributes redirectAttributes
-    ) {
-        adminUseCases.cadastrarBloco(
-                support.authenticatedUser(authentication),
-                blocoForm.getIdentificacao(),
-                defaultInteger(blocoForm.getQuantidadeAndares()),
-                defaultInteger(blocoForm.getApartamentosPorAndar())
-        );
-        redirectAttributes.addFlashAttribute("successMessage", "Bloco cadastrado com sucesso.");
-        return "redirect:/admin/blocos";
-    }
-
+    @Operation(summary = "Exibe o detalhe de um bloco", tags = "02 - Admin Web - Paginas")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Pagina de detalhe do bloco renderizada com sucesso."),
+            @ApiResponse(responseCode = "403", description = "Acesso negado para o perfil autenticado."),
+            @ApiResponse(responseCode = "404", description = "Bloco nao encontrado.")
+    })
     @GetMapping("/blocos/{blocoId}")
     @Transactional(readOnly = true)
     public String detalharBloco(
@@ -289,6 +292,11 @@ public class AdminWebController {
         return "admin/blocos/detalhe";
     }
 
+    @Operation(summary = "Lista os usuarios do sistema", tags = "02 - Admin Web - Paginas")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Pagina de listagem de usuarios renderizada com sucesso."),
+            @ApiResponse(responseCode = "403", description = "Acesso negado para o perfil autenticado.")
+    })
     @GetMapping({"/usuarios", "/usuarios/"})
     @Transactional(readOnly = true)
     public String listarUsuarios(
@@ -304,17 +312,12 @@ public class AdminWebController {
         return "admin/usuarios/lista";
     }
 
-    @PostMapping("/usuarios")
-    public String cadastrarUsuario(
-            Authentication authentication,
-            @ModelAttribute UsuarioForm usuarioForm,
-            RedirectAttributes redirectAttributes
-    ) {
-        adminUseCases.cadastrarUsuario(support.authenticatedUser(authentication), novoUsuario(usuarioForm));
-        redirectAttributes.addFlashAttribute("successMessage", "Usuario cadastrado com sucesso.");
-        return "redirect:/admin/usuarios";
-    }
-
+    @Operation(summary = "Exibe o detalhe de um usuario", tags = "02 - Admin Web - Paginas")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Pagina de detalhe do usuario renderizada com sucesso."),
+            @ApiResponse(responseCode = "403", description = "Acesso negado para o perfil autenticado."),
+            @ApiResponse(responseCode = "404", description = "Usuario nao encontrado.")
+    })
     @GetMapping("/usuarios/{usuarioId}")
     @Transactional(readOnly = true)
     public String detalharUsuario(
@@ -323,190 +326,28 @@ public class AdminWebController {
             Model model
     ) {
         Usuario usuario = adminUseCases.buscarUsuarioPorId(usuarioId);
-        var usuarioForm = new UsuarioForm();
-        usuarioForm.setNome(usuario.getNome());
-        usuarioForm.setEmail(usuario.getEmail());
-        usuarioForm.setTipo(resolveTipoUsuario(usuario));
 
         model.addAttribute("pageTitle", "Detalhes do Usuario");
         model.addAttribute("usuario", support.toUsuarioMap(usuario));
-        model.addAttribute("usuarioForm", usuarioForm);
+        model.addAttribute("usuarioForm", toUsuarioForm(usuario));
 
         if (usuario instanceof Morador) {
-            var unidadesMorador = adminUseCases.listarUnidadesDoMorador(usuarioId, support.pageRequest(0, 100));
-            var blocos = adminUseCases.listarBlocos(support.pageRequest(0, 100));
-            var unidadesMoradorContent = unidadesMorador.content();
-            Set<UUID> unidadeIdsVinculadas = unidadesMoradorContent.stream()
-                    .map(unidade -> unidade.getId())
-                    .collect(Collectors.toSet());
-
-            model.addAttribute("unidadesMorador", support.mapContent(unidadesMorador.content(), support::toUnidadeMap));
-            model.addAttribute("blocosDisponiveis", support.mapContent(blocos.content(), support::toBlocoMap));
-
-            if (blocoId != null) {
-                var unidadesBloco = adminUseCases.listarUnidadesDoBloco(blocoId, support.pageRequest(0, 100));
-                var form = new VincularMoradorUnidadeForm();
-                form.setBlocoId(blocoId);
-                model.addAttribute("blocoSelecionadoId", blocoId);
-                model.addAttribute("vincularMoradorUnidadeForm", form);
-                model.addAttribute(
-                        "unidadesBloco",
-                        unidadesBloco.content().stream()
-                                .map(unidade -> {
-                                    var values = support.toUnidadeMap(unidade);
-                                    values.put("vinculadaAoMorador", unidadeIdsVinculadas.contains(unidade.getId()));
-                                    return values;
-                                })
-                                .toList()
-                );
-            }
+            carregarDadosMorador(model, usuarioId, blocoId, true);
         }
 
         if (usuario instanceof Colaborador) {
-            var tiposChamado = adminUseCases.listarTiposChamado(support.pageRequest(0, 100));
-            var tiposResponsaveis = adminUseCases.listarTiposChamadoDoColaborador(usuarioId, support.pageRequest(0, 100));
-            Set<UUID> tiposResponsaveisIds = tiposResponsaveis.content().stream()
-                    .map(tipoChamado -> tipoChamado.getId())
-                    .collect(Collectors.toSet());
-
-            model.addAttribute("tiposChamadoDisponiveis", support.mapContent(tiposChamado.content(), support::toTipoChamadoMap));
-            model.addAttribute("tiposChamadoColaborador", support.mapContent(tiposResponsaveis.content(), support::toTipoChamadoMap));
-            model.addAttribute("tiposChamadoResponsaveisIds", tiposResponsaveisIds);
+            carregarTiposChamadoDisponiveis(model);
+            carregarDadosColaborador(model, usuarioId);
         }
 
         return "admin/usuarios/detalhe";
     }
 
-    @PostMapping("/usuarios/{usuarioId}")
-    public String atualizarUsuario(
-            Authentication authentication,
-            @PathVariable UUID usuarioId,
-            @ModelAttribute UsuarioForm usuarioForm,
-            RedirectAttributes redirectAttributes
-    ) {
-        Usuario existente = adminUseCases.buscarUsuarioPorId(usuarioId);
-        adminUseCases.atualizarUsuario(
-                support.authenticatedUser(authentication),
-                usuarioId,
-                atualizarUsuarioExistente(existente, usuarioForm)
-        );
-        redirectAttributes.addFlashAttribute("successMessage", "Usuario atualizado com sucesso.");
-        return "redirect:/admin/usuarios/" + usuarioId;
-    }
-
-    @PostMapping("/usuarios/{usuarioId}/remover")
-    public String removerUsuario(
-            Authentication authentication,
-            @PathVariable UUID usuarioId,
-            RedirectAttributes redirectAttributes
-    ) {
-        adminUseCases.removerUsuario(support.authenticatedUser(authentication), usuarioId);
-        redirectAttributes.addFlashAttribute("successMessage", "Usuario removido com sucesso.");
-        return "redirect:/admin/usuarios";
-    }
-
-    @PostMapping("/moradores/{moradorId}/unidades/{unidadeId}/vincular")
-    public String vincularMoradorUnidade(
-            Authentication authentication,
-            @PathVariable UUID moradorId,
-            @PathVariable UUID unidadeId,
-            @RequestParam(required = false) UUID blocoId,
-            @RequestParam(required = false, defaultValue = "false") boolean dashboard,
-            RedirectAttributes redirectAttributes
-    ) {
-        adminUseCases.vincularMoradorUnidade(support.authenticatedUser(authentication), moradorId, unidadeId);
-        redirectAttributes.addFlashAttribute("successMessage", "Unidade vinculada ao morador.");
-        if (dashboard) {
-            return redirectVinculosMorador(moradorId, blocoId);
-        }
-        return redirectUsuarioMorador(moradorId, blocoId);
-    }
-
-    @PostMapping("/moradores/{moradorId}/unidades/vincular")
-    public String vincularMoradorUnidadePorFormulario(
-            Authentication authentication,
-            @PathVariable UUID moradorId,
-            @ModelAttribute VincularMoradorUnidadeForm vincularMoradorUnidadeForm,
-            @RequestParam(required = false, defaultValue = "false") boolean dashboard,
-            RedirectAttributes redirectAttributes
-    ) {
-        if (vincularMoradorUnidadeForm.getUnidadeId() == null) {
-            throw new BusinessRuleException("Selecione uma unidade para vincular ao morador.");
-        }
-
-        adminUseCases.vincularMoradorUnidade(
-                support.authenticatedUser(authentication),
-                moradorId,
-                vincularMoradorUnidadeForm.getUnidadeId()
-        );
-        redirectAttributes.addFlashAttribute("successMessage", "Unidade vinculada ao morador.");
-        if (dashboard) {
-            return redirectVinculosMorador(moradorId, vincularMoradorUnidadeForm.getBlocoId());
-        }
-        return redirectUsuarioMorador(moradorId, vincularMoradorUnidadeForm.getBlocoId());
-    }
-
-    @PostMapping("/moradores/{moradorId}/unidades/{unidadeId}/desvincular")
-    public String desvincularMoradorUnidade(
-            Authentication authentication,
-            @PathVariable UUID moradorId,
-            @PathVariable UUID unidadeId,
-            @RequestParam(required = false) UUID blocoId,
-            @RequestParam(required = false, defaultValue = "false") boolean dashboard,
-            RedirectAttributes redirectAttributes
-    ) {
-        adminUseCases.desvincularMoradorUnidade(support.authenticatedUser(authentication), moradorId, unidadeId);
-        redirectAttributes.addFlashAttribute("successMessage", "Unidade desvinculada do morador.");
-        if (dashboard) {
-            return redirectVinculosMorador(moradorId, blocoId);
-        }
-        return redirectUsuarioMorador(moradorId, blocoId);
-    }
-
-    @PostMapping("/colaboradores/{colaboradorId}/tipos-chamado")
-    public String vincularColaboradorTipoChamado(
-            Authentication authentication,
-            @PathVariable UUID colaboradorId,
-            @ModelAttribute VincularColaboradorTipoChamadoForm vincularColaboradorTipoChamadoForm,
-            @RequestParam(required = false, defaultValue = "false") boolean dashboard,
-            RedirectAttributes redirectAttributes
-    ) {
-        if (vincularColaboradorTipoChamadoForm.getTipoChamadoId() == null) {
-            throw new BusinessRuleException("Selecione um tipo de chamado para vincular ao colaborador.");
-        }
-
-        adminUseCases.vincularColaboradorTipoChamado(
-                support.authenticatedUser(authentication),
-                colaboradorId,
-                vincularColaboradorTipoChamadoForm.getTipoChamadoId()
-        );
-        redirectAttributes.addFlashAttribute("successMessage", "Tipo de chamado vinculado ao colaborador.");
-        if (dashboard) {
-            return redirectEscopoColaborador(colaboradorId);
-        }
-        return "redirect:/admin/usuarios/" + colaboradorId;
-    }
-
-    @PostMapping("/colaboradores/{colaboradorId}/tipos-chamado/{tipoChamadoId}/remover")
-    public String desvincularColaboradorTipoChamado(
-            Authentication authentication,
-            @PathVariable UUID colaboradorId,
-            @PathVariable UUID tipoChamadoId,
-            @RequestParam(required = false, defaultValue = "false") boolean dashboard,
-            RedirectAttributes redirectAttributes
-    ) {
-        adminUseCases.desvincularColaboradorTipoChamado(
-                support.authenticatedUser(authentication),
-                colaboradorId,
-                tipoChamadoId
-        );
-        redirectAttributes.addFlashAttribute("successMessage", "Tipo de chamado desvinculado do colaborador.");
-        if (dashboard) {
-            return redirectEscopoColaborador(colaboradorId);
-        }
-        return "redirect:/admin/usuarios/" + colaboradorId;
-    }
-
+    @Operation(summary = "Lista os tipos de chamado cadastrados", tags = "02 - Admin Web - Paginas")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Pagina de tipos de chamado renderizada com sucesso."),
+            @ApiResponse(responseCode = "403", description = "Acesso negado para o perfil autenticado.")
+    })
     @GetMapping({"/tipos-chamado", "/tipos-chamado/"})
     @Transactional(readOnly = true)
     public String listarTiposChamado(
@@ -532,38 +373,11 @@ public class AdminWebController {
         return "admin/tipos-chamado/lista";
     }
 
-    @PostMapping("/tipos-chamado")
-    public String cadastrarTipoChamado(
-            Authentication authentication,
-            @ModelAttribute TipoChamadoForm tipoChamadoForm,
-            RedirectAttributes redirectAttributes
-    ) {
-        adminUseCases.cadastrarTipoChamado(
-                support.authenticatedUser(authentication),
-                tipoChamadoForm.getTitulo(),
-                defaultInteger(tipoChamadoForm.getPrazoHoras())
-        );
-        redirectAttributes.addFlashAttribute("successMessage", "Tipo de chamado cadastrado com sucesso.");
-        return "redirect:/admin/tipos-chamado";
-    }
-
-    @PostMapping("/tipos-chamado/{tipoId}")
-    public String atualizarTipoChamado(
-            Authentication authentication,
-            @PathVariable UUID tipoId,
-            @ModelAttribute TipoChamadoForm tipoChamadoForm,
-            RedirectAttributes redirectAttributes
-    ) {
-        adminUseCases.atualizarTipoChamado(
-                support.authenticatedUser(authentication),
-                tipoId,
-                tipoChamadoForm.getTitulo(),
-                defaultInteger(tipoChamadoForm.getPrazoHoras())
-        );
-        redirectAttributes.addFlashAttribute("successMessage", "Tipo de chamado atualizado com sucesso.");
-        return "redirect:/admin/tipos-chamado?tipoId=" + tipoId;
-    }
-
+    @Operation(summary = "Lista os status de chamado configurados", tags = "02 - Admin Web - Paginas")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Pagina de status de chamado renderizada com sucesso."),
+            @ApiResponse(responseCode = "403", description = "Acesso negado para o perfil autenticado.")
+    })
     @GetMapping({"/status-chamado", "/status-chamado/"})
     @Transactional(readOnly = true)
     public String listarStatusChamado(
@@ -598,47 +412,11 @@ public class AdminWebController {
         return "admin/status-chamado/lista";
     }
 
-    @PostMapping("/status-chamado")
-    public String cadastrarStatusChamado(
-            Authentication authentication,
-            @ModelAttribute StatusChamadoForm statusChamadoForm,
-            RedirectAttributes redirectAttributes
-    ) {
-        adminUseCases.cadastrarStatus(
-                support.authenticatedUser(authentication),
-                statusChamadoForm.getNome()
-        );
-        redirectAttributes.addFlashAttribute("successMessage", "Status cadastrado com sucesso.");
-        return "redirect:/admin/status-chamado";
-    }
-
-    @PostMapping("/status-chamado/{statusId}")
-    public String atualizarStatusChamado(
-            Authentication authentication,
-            @PathVariable UUID statusId,
-            @ModelAttribute StatusChamadoForm statusChamadoForm,
-            RedirectAttributes redirectAttributes
-    ) {
-        adminUseCases.atualizarStatus(
-                support.authenticatedUser(authentication),
-                statusId,
-                statusChamadoForm.getNome()
-        );
-        redirectAttributes.addFlashAttribute("successMessage", "Status atualizado com sucesso.");
-        return "redirect:/admin/status-chamado?statusId=" + statusId;
-    }
-
-    @PostMapping("/status-chamado/{statusId}/inicial-padrao")
-    public String definirStatusInicialPadrao(
-            Authentication authentication,
-            @PathVariable UUID statusId,
-            RedirectAttributes redirectAttributes
-    ) {
-        adminUseCases.definirStatusInicialPadrao(support.authenticatedUser(authentication), statusId);
-        redirectAttributes.addFlashAttribute("successMessage", "Status inicial padrao atualizado.");
-        return "redirect:/admin/status-chamado";
-    }
-
+    @Operation(summary = "Lista os chamados visiveis ao administrador", tags = "02 - Admin Web - Paginas")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Pagina de chamados do administrador renderizada com sucesso."),
+            @ApiResponse(responseCode = "403", description = "Acesso negado para o perfil autenticado.")
+    })
     @GetMapping({"/chamados", "/chamados/"})
     @Transactional(readOnly = true)
     public String listarChamados(
@@ -658,7 +436,7 @@ public class AdminWebController {
                 dataAbertura,
                 support.pageRequest(page, size)
         );
-        var status = adminUseCases.listarStatus(support.pageRequest(0, 100));
+        var status = adminUseCases.listarStatus(lookupPageRequest());
 
         model.addAttribute("pageTitle", "Chamados");
         model.addAttribute("chamados", support.mapContent(chamados.content(), support::toChamadoMap));
@@ -670,6 +448,12 @@ public class AdminWebController {
         return "admin/chamados/lista";
     }
 
+    @Operation(summary = "Exibe o detalhe de um chamado do administrador", tags = "02 - Admin Web - Paginas")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Pagina de detalhe do chamado renderizada com sucesso."),
+            @ApiResponse(responseCode = "403", description = "Acesso negado para o perfil autenticado."),
+            @ApiResponse(responseCode = "404", description = "Chamado nao encontrado.")
+    })
     @GetMapping("/chamados/{chamadoId}")
     @Transactional(readOnly = true)
     public String detalharChamado(
@@ -679,9 +463,9 @@ public class AdminWebController {
     ) {
         var currentUser = support.authenticatedUser(authentication);
         var chamado = adminUseCases.buscarChamadoPorId(currentUser, chamadoId);
-        var status = adminUseCases.listarStatus(support.pageRequest(0, 100));
-        var comentarios = comentarioUseCase.listarComentariosDoChamado(currentUser, chamadoId, support.pageRequest(0, 100));
-        var anexos = anexoChamadoUseCases.listarAnexosDoChamado(currentUser, chamadoId, support.pageRequest(0, 100));
+        var status = adminUseCases.listarStatus(lookupPageRequest());
+        var comentarios = comentarioUseCase.listarComentariosDoChamado(currentUser, chamadoId, lookupPageRequest());
+        var anexos = anexoChamadoUseCases.listarAnexosDoChamado(currentUser, chamadoId, lookupPageRequest());
 
         model.addAttribute("pageTitle", "Detalhes do Chamado");
         model.addAttribute("chamado", support.toChamadoMap(chamado));
@@ -701,150 +485,12 @@ public class AdminWebController {
         return "admin/chamados/detalhe";
     }
 
-    @PostMapping("/chamados/{chamadoId}/status")
-    public String atualizarStatusChamadoDoAdmin(
-            Authentication authentication,
-            @PathVariable UUID chamadoId,
-            @ModelAttribute AtualizarStatusForm atualizarStatusForm,
-            RedirectAttributes redirectAttributes
-    ) {
-        adminUseCases.atualizarStatusChamado(
-                support.authenticatedUser(authentication),
-                chamadoId,
-                atualizarStatusForm.getStatusId()
-        );
-        redirectAttributes.addFlashAttribute("successMessage", "Status do chamado atualizado.");
-        return "redirect:/admin/chamados/" + chamadoId;
-    }
-
-    @PostMapping("/chamados/{chamadoId}/finalizar")
-    public String finalizarChamado(
-            Authentication authentication,
-            @PathVariable UUID chamadoId,
-            RedirectAttributes redirectAttributes
-    ) {
-        adminUseCases.finalizarChamado(support.authenticatedUser(authentication), chamadoId);
-        redirectAttributes.addFlashAttribute("successMessage", "Chamado finalizado.");
-        return "redirect:/admin/chamados/" + chamadoId;
-    }
-
-    @PostMapping("/chamados/{chamadoId}/comentarios")
-    public String comentarChamado(
-            Authentication authentication,
-            @PathVariable UUID chamadoId,
-            @ModelAttribute ComentarioForm comentarioForm,
-            @RequestParam(name = "arquivo", required = false) MultipartFile arquivo,
-            RedirectAttributes redirectAttributes
-    ) {
-        var currentUser = support.authenticatedUser(authentication);
-        var comentario = adminUseCases.comentarChamado(
-                currentUser,
-                chamadoId,
-                comentarioForm.getMensagem()
-        );
-
-        if (arquivo != null && !arquivo.isEmpty()) {
-            try {
-                anexoComentarioUseCases.adicionarAnexoAoComentario(
-                        currentUser,
-                        chamadoId,
-                        comentario.getId(),
-                        arquivo.getOriginalFilename(),
-                        arquivo.getContentType(),
-                        arquivo.getSize(),
-                        arquivo.getBytes()
-                );
-            } catch (Exception exception) {
-                throw new IllegalArgumentException("Nao foi possivel anexar o arquivo ao comentario.", exception);
-            }
-        }
-
-        redirectAttributes.addFlashAttribute("successMessage", "Comentario adicionado ao chamado.");
-        return "redirect:/admin/chamados/" + chamadoId;
-    }
-
-    @GetMapping("/chamados/{chamadoId}/comentarios/{comentarioId}/anexos/{anexoId}")
-    @Transactional(readOnly = true)
-    public ResponseEntity<byte[]> baixarAnexoDoComentario(
-            Authentication authentication,
-            @PathVariable UUID chamadoId,
-            @PathVariable UUID comentarioId,
-            @PathVariable UUID anexoId
-    ) {
-        var anexo = anexoComentarioUseCases.buscarAnexoPorId(
-                support.authenticatedUser(authentication),
-                chamadoId,
-                comentarioId,
-                anexoId
-        );
-
-        MediaType mediaType = MediaType.APPLICATION_OCTET_STREAM;
-        if (anexo.contentType() != null && !anexo.contentType().isBlank()) {
-            mediaType = MediaType.parseMediaType(anexo.contentType());
-        }
-
-        return ResponseEntity.ok()
-                .header(
-                        HttpHeaders.CONTENT_DISPOSITION,
-                        ContentDisposition.attachment().filename(anexo.nomeArquivo()).build().toString()
-                )
-                .contentType(mediaType)
-                .contentLength(anexo.tamanhoBytes())
-                .body(anexo.conteudo());
-    }
-
-    @GetMapping("/chamados/{chamadoId}/anexos/{anexoId}")
-    @Transactional(readOnly = true)
-    public ResponseEntity<byte[]> baixarAnexo(
-            Authentication authentication,
-            @PathVariable UUID chamadoId,
-            @PathVariable UUID anexoId
-    ) {
-        var anexo = anexoChamadoUseCases.buscarAnexoPorId(
-                support.authenticatedUser(authentication),
-                chamadoId,
-                anexoId
-        );
-
-        MediaType mediaType = MediaType.APPLICATION_OCTET_STREAM;
-        if (anexo.contentType() != null && !anexo.contentType().isBlank()) {
-            mediaType = MediaType.parseMediaType(anexo.contentType());
-        }
-
-        return ResponseEntity.ok()
-                .header(
-                        HttpHeaders.CONTENT_DISPOSITION,
-                        ContentDisposition.attachment().filename(anexo.nomeArquivo()).build().toString()
-                )
-                .contentType(mediaType)
-                .contentLength(anexo.tamanhoBytes())
-                .body(anexo.conteudo());
-    }
-
-    private Usuario novoUsuario(UsuarioForm usuarioForm) {
-        Usuario usuario = switch (usuarioForm.getTipo()) {
-            case "ADMINISTRADOR" -> new Administrador();
-            case "COLABORADOR" -> new Colaborador();
-            case "MORADOR" -> new Morador();
-            default -> throw new BusinessRuleException("Tipo de usuario invalido");
-        };
-        usuario.setNome(usuarioForm.getNome());
-        usuario.setEmail(usuarioForm.getEmail());
-        usuario.setSenha(usuarioForm.getSenha());
-        return usuario;
-    }
-
-    private Usuario atualizarUsuarioExistente(Usuario existente, UsuarioForm usuarioForm) {
-        Usuario usuario = switch (resolveTipoUsuario(existente)) {
-            case "ADMINISTRADOR" -> new Administrador();
-            case "COLABORADOR" -> new Colaborador();
-            case "MORADOR" -> new Morador();
-            default -> throw new BusinessRuleException("Tipo de usuario invalido");
-        };
-        usuario.setNome(usuarioForm.getNome());
-        usuario.setEmail(usuarioForm.getEmail());
-        usuario.setSenha(usuarioForm.getSenha());
-        return usuario;
+    private UsuarioForm toUsuarioForm(Usuario usuario) {
+        var usuarioForm = new UsuarioForm();
+        usuarioForm.setNome(usuario.getNome());
+        usuarioForm.setEmail(usuario.getEmail());
+        usuarioForm.setTipo(resolveTipoUsuario(usuario));
+        return usuarioForm;
     }
 
     private String resolveTipoUsuario(Usuario usuario) {
@@ -857,71 +503,95 @@ public class AdminWebController {
     }
 
     private void carregarVinculosMorador(Model model, UUID moradorId, UUID blocoId) {
-        Usuario usuario = adminUseCases.buscarUsuarioPorId(moradorId);
-        if (!(usuario instanceof Morador)) {
-            throw new BusinessRuleException("O usuario selecionado nao e um morador.");
-        }
-
-        var unidadesMorador = adminUseCases.listarUnidadesDoMorador(moradorId, support.pageRequest(0, 100));
-        var unidadesMoradorContent = unidadesMorador.content();
-        Set<UUID> unidadeIdsVinculadas = unidadesMoradorContent.stream()
-                .map(unidade -> unidade.getId())
-                .collect(Collectors.toSet());
-
-        model.addAttribute("moradorSelecionado", support.toUsuarioMap(usuario));
-        model.addAttribute("unidadesMorador", support.mapContent(unidadesMoradorContent, support::toUnidadeMap));
-
-        if (blocoId != null) {
-            var unidadesBloco = adminUseCases.listarUnidadesDoBloco(blocoId, support.pageRequest(0, 100));
-            model.addAttribute(
-                    "unidadesBloco",
-                    unidadesBloco.content().stream()
-                            .map(unidade -> {
-                                var values = support.toUnidadeMap(unidade);
-                                values.put("vinculadaAoMorador", unidadeIdsVinculadas.contains(unidade.getId()));
-                                return values;
-                            })
-                            .toList()
-            );
-        }
+        var morador = requireMorador(moradorId);
+        model.addAttribute("moradorSelecionado", support.toUsuarioMap(morador));
+        carregarDadosMorador(model, moradorId, blocoId, false);
     }
 
     private void carregarEscopoColaborador(Model model, UUID colaboradorId) {
-        Usuario usuario = adminUseCases.buscarUsuarioPorId(colaboradorId);
-        if (!(usuario instanceof Colaborador)) {
-            throw new BusinessRuleException("O usuario selecionado nao e um colaborador.");
+        var colaborador = requireColaborador(colaboradorId);
+        model.addAttribute("colaboradorSelecionado", support.toUsuarioMap(colaborador));
+        carregarDadosColaborador(model, colaboradorId);
+    }
+
+    private void carregarDadosMorador(Model model, UUID moradorId, UUID blocoId, boolean incluirBlocosDisponiveis) {
+        var unidadesMorador = adminUseCases.listarUnidadesDoMorador(moradorId, lookupPageRequest());
+        var unidadesMoradorContent = unidadesMorador.content();
+        Set<UUID> unidadeIdsVinculadas = unidadesMoradorContent.stream()
+                .map(Unidade::getId)
+                .collect(Collectors.toSet());
+
+        model.addAttribute("unidadesMorador", support.mapContent(unidadesMoradorContent, support::toUnidadeMap));
+
+        if (incluirBlocosDisponiveis) {
+            carregarBlocosDisponiveis(model);
         }
 
-        var tiposResponsaveis = adminUseCases.listarTiposChamadoDoColaborador(colaboradorId, support.pageRequest(0, 100));
+        if (blocoId != null) {
+            model.addAttribute("blocoSelecionadoId", blocoId);
+            model.addAttribute("vincularMoradorUnidadeForm", toVincularMoradorUnidadeForm(blocoId));
+            carregarUnidadesDoBloco(model, blocoId, unidadeIdsVinculadas);
+        }
+    }
+
+    private void carregarDadosColaborador(Model model, UUID colaboradorId) {
+        var tiposResponsaveis = adminUseCases.listarTiposChamadoDoColaborador(colaboradorId, lookupPageRequest());
         Set<UUID> tiposResponsaveisIds = tiposResponsaveis.content().stream()
                 .map(tipoChamado -> tipoChamado.getId())
                 .collect(Collectors.toSet());
 
-        model.addAttribute("colaboradorSelecionado", support.toUsuarioMap(usuario));
         model.addAttribute("tiposChamadoColaborador", support.mapContent(tiposResponsaveis.content(), support::toTipoChamadoMap));
         model.addAttribute("tiposChamadoResponsaveisIds", tiposResponsaveisIds);
     }
 
-    private String redirectUsuarioMorador(UUID moradorId, UUID blocoId) {
-        if (blocoId == null) {
-            return "redirect:/admin/usuarios/" + moradorId;
+    private void carregarBlocosDisponiveis(Model model) {
+        var blocos = adminUseCases.listarBlocos(lookupPageRequest());
+        model.addAttribute("blocosDisponiveis", support.mapContent(blocos.content(), support::toBlocoMap));
+    }
+
+    private void carregarTiposChamadoDisponiveis(Model model) {
+        var tiposChamado = adminUseCases.listarTiposChamado(lookupPageRequest());
+        model.addAttribute("tiposChamadoDisponiveis", support.mapContent(tiposChamado.content(), support::toTipoChamadoMap));
+    }
+
+    private void carregarUnidadesDoBloco(Model model, UUID blocoId, Set<UUID> unidadeIdsVinculadas) {
+        var unidadesBloco = adminUseCases.listarUnidadesDoBloco(blocoId, lookupPageRequest());
+        model.addAttribute(
+                "unidadesBloco",
+                unidadesBloco.content().stream()
+                        .map(unidade -> {
+                            var values = support.toUnidadeMap(unidade);
+                            values.put("vinculadaAoMorador", unidadeIdsVinculadas.contains(unidade.getId()));
+                            return values;
+                        })
+                        .toList()
+        );
+    }
+
+    private VincularMoradorUnidadeForm toVincularMoradorUnidadeForm(UUID blocoId) {
+        var form = new VincularMoradorUnidadeForm();
+        form.setBlocoId(blocoId);
+        return form;
+    }
+
+    private Morador requireMorador(UUID moradorId) {
+        Usuario usuario = adminUseCases.buscarUsuarioPorId(moradorId);
+        if (!(usuario instanceof Morador morador)) {
+            throw new BusinessRuleException("O usuario selecionado nao e um morador.");
         }
-        return "redirect:/admin/usuarios/" + moradorId + "?blocoId=" + blocoId;
+        return morador;
     }
 
-    private String redirectVinculosMorador(UUID moradorId, UUID blocoId) {
-        if (blocoId == null) {
-            return "redirect:/admin/vinculos-morador?moradorId=" + moradorId;
+    private Colaborador requireColaborador(UUID colaboradorId) {
+        Usuario usuario = adminUseCases.buscarUsuarioPorId(colaboradorId);
+        if (!(usuario instanceof Colaborador colaborador)) {
+            throw new BusinessRuleException("O usuario selecionado nao e um colaborador.");
         }
-        return "redirect:/admin/vinculos-morador?moradorId=" + moradorId + "&blocoId=" + blocoId;
+        return colaborador;
     }
 
-    private String redirectEscopoColaborador(UUID colaboradorId) {
-        return "redirect:/admin/escopo-colaborador?colaboradorId=" + colaboradorId;
-    }
-
-    private int defaultInteger(Integer value) {
-        return value == null ? 0 : value;
+    private org.springframework.data.domain.PageRequest lookupPageRequest() {
+        return support.pageRequest(0, LOOKUP_PAGE_SIZE);
     }
 
     private boolean isStatusReservado(String nome) {

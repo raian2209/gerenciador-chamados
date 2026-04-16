@@ -284,14 +284,6 @@ public interface AdminUseCases {
     );
 
     /**
-     *  para encerrar administrativamente um chamado e registrar sua data de finalizacao.
-     */
-    Chamado finalizarChamado(
-            AuthenticatedUser admin,
-            UUID chamadoId
-    );
-
-    /**
      *  para que o administrador participe do historico de interacoes dos chamados
      * quando houver necessidade de orientacao, validacao ou acompanhamento.
      */
