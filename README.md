@@ -32,9 +32,6 @@ Este projeto implementa um sistema de gerenciamento de chamados para condomínio
   - [Variáveis de ambiente](#variáveis-de-ambiente)
   - [Execução com Docker Compose](#execução-com-docker-compose)
   - [Inicialização e Credenciais Padrão (Bootstrap)](#inicialização-e-credenciais-padrão-bootstrap)
-- [Mapeamento dos Testes](#mapeamento-dos-testes)
-  - [Testes unitários](#testes-unitários)
-  - [Testes de integração](#testes-de-integração)
 
 # Funcionalidades Seguidas 
 
@@ -298,17 +295,7 @@ gerenciador-chamados/                        -> raiz do projeto com código, bui
 │   │       ├── fragments/                   -> head, topbar, sidebar, alerts e partes reutilizáveis das views
 │   │       └── morador/                     -> telas do morador
 │   │           └── chamados/                -> abertura, listagem, acompanhamento e reabertura de chamados
-│   └── test/
-│       └── java/br/com/dunnastecnologia/chamados/
-│           ├── integration/                 -> testes de integração separados por fluxo web e persistência
-│           │   ├── controller/web/          -> testes MVC com MockMvc, segurança simulada e redirecionamentos
-│           │   └── repository/              -> testes com comportamento real de consulta e atualização no banco
-│           ├── unit/                        -> testes unitários isolados
-│           │   ├── config/                  -> validações de bootstrap e configuração inicial
-│           │   └── service/                 -> regras de negócio e serviços com dependências mockadas
-│           └── infrastructure/              -> pacote legado/remanescente de testes de infraestrutura ainda presente no projeto
 ├── .env                                     -> variáveis locais usadas pelo docker compose e pela aplicação
-├── .github/workflows/                       -> pipelines do GitHub Actions para execução automatizada de testes
 ├── docker-compose.yml                       -> orquestração local da aplicação e do PostgreSQL
 ├── Dockerfile                               -> imagem da aplicação Java
 ├── schema-drawio.sql                        -> SQL usado para importar o schema relacional no Draw.io
@@ -366,15 +353,6 @@ gerenciador-chamados/                        -> raiz do projeto com código, bui
 - `auth` isola a entrada pública do sistema.
 - `fragments` evita repetição de layout, navegação, mensagens e cabeçalhos entre as telas.
 
-### `src/test/java/br/com/dunnastecnologia/chamados`
-
-- Os testes foram separados fisicamente entre `unit` e `integration` para deixar mais claro o nível de cobertura de cada classe.
-- `unit/config` reúne validações de bootstrap e configuração.
-- `unit/service` concentra regras de negócio isoladas com mocks.
-- `integration/controller/web` cobre fluxos MVC com `MockMvc`, binding e redirecionamentos.
-- `integration/repository` cobre comportamento real de consultas e atualizações no repositório.
-- O pacote `infrastructure` ainda existe na árvore de testes como estrutura remanescente/legada e deve ser mantido ou migrado conforme a evolução da organização dos testes.
-
 ## Estrutura do sistema
 
 ## Clean Architecture no projeto
@@ -401,7 +379,7 @@ O projeto não segue uma implementação acadêmica pura de Clean Architecture, 
 
 - Os controllers dependem dos contratos da camada `application`, não diretamente de implementações concretas de serviço.
 - Os services implementam interfaces de caso de uso, o que reduz dependência da camada superior sobre detalhes concretos.
-- A decisão melhora testabilidade e troca de adaptadores, mesmo que o projeto ainda use repositories concretos da infraestrutura.
+- A decisão melhora manutenção e troca de adaptadores, mesmo que o projeto ainda use repositories concretos da infraestrutura.
 
 ## Princípios SOLID aplicados ao projeto
 
@@ -1175,13 +1153,13 @@ FROM flyway_schema_history
 ORDER BY installed_rank;
 ```
 
-Testar a página inicial via linha de comando:
+Verificar a página inicial via linha de comando:
 
 ```bash
 curl -i http://localhost:8080/
 ```
 
-Testar a tela de login via linha de comando:
+Verificar a tela de login via linha de comando:
 
 ```bash
 curl -i http://localhost:8080/login
@@ -1239,120 +1217,3 @@ Esses três status são tratados como reservados pela aplicação e nao podem se
 
 - Interface Web (Página de Login): http://localhost:8080/
 - Swagger: http://localhost:8080/swagger-ui/index.html
-
-## Mapeamento dos Testes
-
-O projeto possui testes automatizados separados entre cobertura unitária e cobertura de integração da camada web.
-
-### Testes unitários
-
-Os testes unitários focam regras de negócio e comportamento isolado de serviços e configurações, normalmente com uso de mocks para repositories e dependências auxiliares.
-
-#### `AdminBootstrapConfigTest`
-
-- Valida a configuração de bootstrap do administrador padrão.
-- Garante que os status obrigatórios, como `Solicitado`, `Finalizado` e `Atrasado`, sejam assegurados na inicialização.
-- Verifica também a reativação de administrador inativo quando o email padrão já existe.
-
-#### `AuthenticationServiceTest`
-
-- Valida o serviço de autenticação usado pelo Spring Security.
-- Garante que o carregamento do usuário por email considere apenas registros ativos.
-- Confirma que usuários inexistentes ou inativos geram falha de autenticação.
-
-#### `ChamadoServiceTest`
-
-- Exercita as regras centrais de abertura e finalização de chamados.
-- Verifica a abertura com status inicial padrão.
-- Garante erro quando o morador tenta abrir chamado para unidade sem vínculo.
-- Garante erro quando a descrição ultrapassa o limite configurado.
-- Confirma a finalização de chamado por colaborador com atualização de status e data de encerramento.
-- Valida a reabertura pelo morador, incluindo retorno para `Solicitado` ou `Atrasado` conforme o SLA.
-
-#### `UsuarioServiceTest`
-
-- Valida a regra de cadastro, atualização, remoção lógica e vínculos de usuários.
-- Garante codificação de senha no cadastro.
-- Garante erro quando campos textuais, como nome, ultrapassam o limite permitido.
-- Testa vínculo e desvínculo entre morador e unidade.
-- Testa vínculo e desvínculo entre colaborador e tipo de chamado.
-- Verifica que usuários inativos não devem ser retornados em buscas e que o tipo do usuário não pode ser trocado indevidamente em atualização.
-
-#### `AnexoChamadoServiceTest`
-
-- Valida o serviço responsável por anexos dos chamados.
-- Garante a persistência correta dos metadados e do conteúdo binário.
-- Verifica a falha quando o arquivo enviado está vazio.
-- Verifica a falha quando o arquivo excede `5 MB`.
-- Confirma o bloqueio de novos anexos em chamados finalizados.
-
-#### `AnexoComentarioServiceTest`
-
-- Valida o serviço responsável por anexos de comentários.
-- Garante a persistência correta do arquivo vinculado a um comentário específico.
-- Verifica a falha quando o arquivo excede `5 MB`.
-- Confirma o bloqueio de anexos de comentário quando o chamado já está finalizado.
-
-#### `ComentarioServiceTest`
-
-- Exercita a criação de comentários no histórico do chamado.
-- Garante a persistência quando o chamado está aberto.
-- Confirma erro quando a mensagem ultrapassa o limite permitido.
-- Confirma o bloqueio de novos comentários em chamados finalizados.
-
-#### `StatusChamadoServiceTest`
-
-- Valida a proteção dos status reservados do sistema.
-- Garante que `Solicitado`, `Atrasado` e `Finalizado` nao possam ser renomeados na camada de serviço.
-
-#### `ChamadoAtrasoSchedulerTest`
-
-- Verifica que o scheduler de atraso delega a execução para a atualização em lote do repositório.
-
-#### `ChamadoRepositoryIntegrationTest`
-
-- Exercita a atualização em lote do status `Atrasado` no repositório.
-- Garante que um chamado com SLA expirado seja efetivamente atualizado para `Atrasado` quando a rotina é acionada.
-
-### Testes de integração
-
-Os testes de integração atuais exercitam a camada web com `MockMvc`, cobrindo controller, binding de request, redirecionamentos, autenticação simulada e composição básica do model.
-
-#### `AuthAndHomeWebControllerIntegrationTest`
-
-- Valida as rotas públicas principais da interface web.
-- Garante que `/` redirecione para `/login` quando não há autenticação.
-- Garante o redirecionamento para o painel correto quando o usuário autenticado é administrador.
-- Verifica a renderização da tela de login.
-
-#### `AdminWebControllerIntegrationTest`
-
-- Exercita endpoints web do administrador.
-- Verifica paginação na listagem de blocos.
-- Garante o envio correto de filtros e paginação para a busca de chamados.
-- Confirma que status reservados aparecem como bloqueados para edição na tela administrativa.
-- Confirma o redirecionamento correto ao remover usuário via soft delete.
-- Valida o envio de comentário com anexo no fluxo web do administrador.
-
-#### `ColaboradorWebControllerIntegrationTest`
-
-- Exercita a listagem operacional de chamados do colaborador.
-- Verifica propagação de filtros por status, tipo de chamado, unidade e data de abertura.
-- Garante envio correto da paginação para a camada de aplicação.
-- Valida o envio de comentário com anexo no fluxo web do colaborador.
-
-#### `MoradorWebControllerIntegrationTest`
-
-- Exercita os endpoints web principais do morador.
-- Verifica paginação e propagação de filtros na listagem dos próprios chamados.
-- Confirma o redirecionamento após abertura de um novo chamado.
-- Testa o envio multipart de anexos na abertura do chamado, no próprio chamado e em comentários.
-- Valida o endpoint web de reabertura do chamado.
-
-### Infraestrutura de suporte aos testes
-
-#### `WebTestAuthenticationFactory`
-
-- Não é um teste, e sim uma classe auxiliar da suíte de integração web.
-- Centraliza a criação de autenticações simuladas para administrador, colaborador e morador.
-- Evita duplicação de setup de segurança entre os testes MVC.
