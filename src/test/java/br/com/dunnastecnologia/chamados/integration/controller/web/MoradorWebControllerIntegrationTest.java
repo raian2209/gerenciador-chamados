@@ -12,6 +12,7 @@ import br.com.dunnastecnologia.chamados.domain.model.Comentario;
 import br.com.dunnastecnologia.chamados.domain.model.StatusChamado;
 import br.com.dunnastecnologia.chamados.domain.model.TipoChamado;
 import br.com.dunnastecnologia.chamados.domain.model.Unidade;
+import br.com.dunnastecnologia.chamados.infrastructure.controller.api.MoradorChamadoApiController;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -34,13 +35,13 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
-@WebMvcTest(MoradorWebController.class)
+@WebMvcTest({MoradorWebController.class, MoradorChamadoApiController.class})
 @AutoConfigureMockMvc(addFilters = false)
 @Import(WebControllerSupport.class)
 class MoradorWebControllerIntegrationTest {
@@ -303,7 +304,7 @@ class MoradorWebControllerIntegrationTest {
         UUID chamadoId = UUID.fromString("00000000-0000-0000-0000-000000000049");
 
         mockMvc.perform(
-                        post("/morador/chamados/{chamadoId}/reabrir", chamadoId)
+                        patch("/morador/chamados/{chamadoId}/reabrir", chamadoId)
                                 .with(authentication(WebTestAuthenticationFactory.morador()))
                 )
                 .andExpect(status().is3xxRedirection())

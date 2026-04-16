@@ -10,6 +10,13 @@ import br.com.dunnastecnologia.chamados.domain.model.Comentario;
 import br.com.dunnastecnologia.chamados.domain.model.Morador;
 import br.com.dunnastecnologia.chamados.domain.model.StatusChamado;
 import br.com.dunnastecnologia.chamados.domain.model.Unidade;
+import br.com.dunnastecnologia.chamados.infrastructure.controller.api.AdminChamadoApiController;
+import br.com.dunnastecnologia.chamados.infrastructure.controller.api.BlocoApiController;
+import br.com.dunnastecnologia.chamados.infrastructure.controller.api.ColaboradorTipoChamadoApiController;
+import br.com.dunnastecnologia.chamados.infrastructure.controller.api.MoradorUnidadeApiController;
+import br.com.dunnastecnologia.chamados.infrastructure.controller.api.StatusChamadoApiController;
+import br.com.dunnastecnologia.chamados.infrastructure.controller.api.TipoChamadoApiController;
+import br.com.dunnastecnologia.chamados.infrastructure.controller.api.UsuarioApiController;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -33,15 +40,24 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
-@WebMvcTest(AdminWebController.class)
+@WebMvcTest({
+        AdminWebController.class,
+        AdminChamadoApiController.class,
+        BlocoApiController.class,
+        ColaboradorTipoChamadoApiController.class,
+        MoradorUnidadeApiController.class,
+        StatusChamadoApiController.class,
+        TipoChamadoApiController.class,
+        UsuarioApiController.class
+})
 @AutoConfigureMockMvc(addFilters = false)
 @Import(WebControllerSupport.class)
 class AdminWebControllerIntegrationTest {
@@ -259,7 +275,7 @@ class AdminWebControllerIntegrationTest {
         UUID usuarioId = UUID.fromString("00000000-0000-0000-0000-000000000020");
 
         mockMvc.perform(
-                        post("/admin/usuarios/{usuarioId}/remover", usuarioId)
+                        delete("/admin/usuarios/{usuarioId}", usuarioId)
                                 .with(authentication(WebTestAuthenticationFactory.administrador()))
                 )
                 .andExpect(status().is3xxRedirection())

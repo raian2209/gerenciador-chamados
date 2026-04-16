@@ -120,22 +120,25 @@ class ChamadoServiceTest {
     }
 
     @Test
-    void finalizarComoColaboradorDeveAplicarStatusFinalizadoEDataFinalizacao() {
+    void atualizarStatusComoColaboradorDeveAplicarStatusFinalizadoEDataFinalizacao() {
         UUID colaboradorId = UUID.randomUUID();
         UUID chamadoId = UUID.randomUUID();
+        UUID statusId = UUID.randomUUID();
         AuthenticatedUser colaborador = new AuthenticatedUser(colaboradorId, "colab@cond.local", "ROLE_COLABORADOR");
 
         Chamado chamado = new Chamado();
         chamado.setId(chamadoId);
+        chamado.setDataFinalizacao(null);
 
         StatusChamado statusFinalizado = new StatusChamado();
+        statusFinalizado.setId(statusId);
         statusFinalizado.setNome("Finalizado");
 
         when(chamadoRepository.findByIdAndColaboradorId(colaboradorId, chamadoId)).thenReturn(Optional.of(chamado));
-        when(statusChamadoRepository.findByNome("Finalizado")).thenReturn(Optional.of(statusFinalizado));
+        when(statusChamadoRepository.findById(statusId)).thenReturn(Optional.of(statusFinalizado));
         when(chamadoRepository.save(any(Chamado.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Chamado chamadoFinalizado = chamadoService.finalizarComoColaborador(colaborador, chamadoId);
+        Chamado chamadoFinalizado = chamadoService.atualizarStatusComoColaborador(colaborador, chamadoId, statusId);
 
         assertEquals(statusFinalizado, chamadoFinalizado.getStatus());
         assertNotNull(chamadoFinalizado.getDataFinalizacao());

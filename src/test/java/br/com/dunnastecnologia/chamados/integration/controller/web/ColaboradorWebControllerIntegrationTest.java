@@ -8,6 +8,7 @@ import br.com.dunnastecnologia.chamados.application.pagination.PageResult;
 import br.com.dunnastecnologia.chamados.domain.model.Chamado;
 import br.com.dunnastecnologia.chamados.domain.model.Comentario;
 import br.com.dunnastecnologia.chamados.domain.model.StatusChamado;
+import br.com.dunnastecnologia.chamados.infrastructure.controller.api.ColaboradorChamadoApiController;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -30,13 +31,13 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
-@WebMvcTest(ColaboradorWebController.class)
+@WebMvcTest({ColaboradorWebController.class, ColaboradorChamadoApiController.class})
 @AutoConfigureMockMvc(addFilters = false)
 @Import(WebControllerSupport.class)
 class ColaboradorWebControllerIntegrationTest {
@@ -181,7 +182,7 @@ class ColaboradorWebControllerIntegrationTest {
                 .thenReturn(chamadoFinalizado);
 
         mockMvc.perform(
-                        post("/colaborador/chamados/{chamadoId}/status", chamadoId)
+                        patch("/colaborador/chamados/{chamadoId}/status", chamadoId)
                                 .with(authentication(WebTestAuthenticationFactory.colaborador()))
                                 .param("statusId", statusId.toString())
                 )
