@@ -176,21 +176,12 @@ O projeto utiliza alguns padrões de projeto de forma prática dentro da organiz
 - Os repositories em `infrastructure/repository` seguem o padrão Repository.
 - Eles abstraem o acesso ao banco usando Spring Data JPA, evitando espalhar consultas SQL e JPQL pela aplicação.
 
-### Mapper
-
-- Os mappers em `infrastructure/mapper` seguem o padrão Mapper.
-- Eles transformam entidades de domínio em DTOs de resposta, reduzindo acoplamento entre persistência e transporte de dados.
-
 ### Adapter
 
 - O projeto também utiliza o padrão Adapter em pontos de integração com o Spring Security.
 - A classe `UserDetailsImpl` em `infrastructure/security/adapter` adapta a entidade `Usuario` do domínio para a interface `UserDetails` exigida pelo framework.
 - Isso permite que a autenticação do Spring trabalhe com o modelo do sistema sem acoplar a entidade diretamente ao contrato externo.
 
-### DTO
-
-- Os DTOs em `infrastructure/dto` seguem o padrão Data Transfer Object.
-- Eles definem contratos explícitos de entrada e saída para web e API sem expor diretamente todas as entidades.
 
 ### Strategy por Papel
 
@@ -229,9 +220,7 @@ gerenciador-chamados/                        -> raiz do projeto com código, bui
 │   │   │   └── infrastructure/              -> implementação técnica da aplicação
 │   │   │       ├── config/                  -> configuração Spring, bootstrap e agendamentos
 │   │   │       ├── controller/              -> entrada HTTP da aplicação, com controllers web e forms
-│   │   │       ├── dto/                     -> objetos de transporte entre camadas e respostas
 │   │   │       ├── exception/               -> exceções de regra de negócio e de acesso
-│   │   │       ├── mapper/                  -> conversão entre entidades, DTOs e modelos de view
 │   │   │       ├── repository/              -> acesso a dados com Spring Data JPA
 │   │   │       ├── security/                -> autenticação, JWT e adaptação ao Spring Security
 │   │   │       └── service/                 -> implementação dos casos de uso e regras de negócio
@@ -1209,6 +1198,7 @@ Esses três status são tratados como reservados pela aplicação e nao podem se
 ### Acessando a Aplicação
 
 - Interface Web (Página de Login): http://localhost:8080/
+- Swagger: http://localhost:8080/swagger-ui/index.html
 
 ## Mapeamento dos Testes
 
